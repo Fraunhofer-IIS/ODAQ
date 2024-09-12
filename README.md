@@ -71,3 +71,15 @@ In just a few lines of code, you were able to reproduce a slightly uglier versio
 ## Call for Contributions
 
 We make this data available to the community and we welcome contributions and extensions from the community!
+
+### How to contribute? 
+
+There are many ways to contribute to ODAQ (and we welcome all of them!). Here, we will provide examples of two main types of contributions:
+
+#### Type 1: Extend with additional materials:
+
+This type of contribution extends the dataset with materials such as new audio content and/or new subjective scores. Please refer to [./extend/](./extend/) subfolder for more information. 
+
+#### Type 2: Benchmark with the existing dataset: 
+
+This type of contribution utilizes the dataset for benchmarking and provides the results in a reproducible manner. Please refer to [./benchmark/](./benchmark/) subfolder for more information.
