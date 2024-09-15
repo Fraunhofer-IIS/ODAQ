@@ -41,7 +41,7 @@ booktitle={IEEE International Conference on Acoustics Speech and Signal Processi
 ##  At a Glance
 
 The ODAQ package contains the raw results from the listening test. The results for each participant are stored as `.xml` files as output by [the listening test app.](https://github.com/Netflix-Skunkworks/listening-test-app)
-For convinience, the raw results are also aggregated in `ODAQ_results.csv` so that they can be easily loaded, e.g., in python by pandas:
+For convenience, the raw results are also aggregated in `ODAQ_results.csv` so that they can be easily loaded, e.g., in python by pandas:
 
 ```python
 import pandas
