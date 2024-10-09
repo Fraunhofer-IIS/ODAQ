@@ -12,7 +12,8 @@ The quality-rated audio samples are processed versions of the original audio mat
 - 11 excerpts from movie-like soundtracks with dialogues mixed with music and effects (separate stems and transcripts are also provided).
 
 ## Download
-ODAQ can be downloaded from Zenodo: https://doi.org/10.5281/zenodo.10405774
+- ODAQ can be downloaded from Zenodo: https://doi.org/10.5281/zenodo.10405774
+- Further subjective test scores on the same audio files can be downloaded from: https://doi.org/10.5281/zenodo.13377284
 
 ## Highlights
 
