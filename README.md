@@ -2,76 +2,53 @@
 
 
 ## Latest News
-- 2026.01: new contribution to ODAQ is available. For a complete list of contributions, see the [contributions table](./extend/README.md#list-of-contributions-latest-update-202510).
+- 2026.01: new contribution to ODAQ is available. For a complete list of contributions, see the [ODAQ-Collection](#odaq-collection) and [Community Contributions](#community-contributions) tables below.
 
 ## Introduction
-[id]:https://arxiv.org/abs/2401.00197
 
-ODAQ is a dataset addressing the scarcity of openly available collections of audio signals accompanied by corresponding subjective scores of perceived quality.
+ODAQ (Open Dataset of Audio Quality) is a growing collection of openly available audio datasets accompanied by corresponding subjective quality scores. The collection addresses the scarcity of such resources for research into the prediction and analysis of perceived audio quality.
 
-ODAQ contains 240 audio samples accompanied by corresponding quality scores obtained via a MUSHRA listening test carried out in parallel at Fraunhofer IIS (Germany) and at Netflix, Inc. (USA).
+All ODAQ datasets are created using the MUSHRA listening test methodology, conducted by expert listeners from international laboratories including Fraunhofer IIS (Germany), Netflix, Inc. (USA), and Ball State University (USA). The audio material consists of stereo signals sampled at 44.1 or 48 kHz, including music excerpts (solo recordings and ensemble pieces) as well as movie-like soundtracks with dialogues mixed with music and effects.
 
-The quality-rated audio samples are processed versions of the original audio material (also made available). The original audio material consists of:
-- stereo audio with 44.1 or 48 kHz sampling frequency;
-- 14 music excerpts (8 of which are solo recordings);
-- 11 excerpts from movie-like soundtracks with dialogues mixed with music and effects (separate stems and transcripts are also provided).
+Key characteristics of ODAQ:
+- **Diverse processing conditions**: Audio samples processed by various method classes designed to generate quality degradations encountered during audio coding and source separation
+- **Full quality range coverage**: Quality levels for each processing method span the entire quality range
+- **High-fidelity audio**: Stereo audio with 44.1 or 48 kHz sampling frequency
+- **International expert listeners**: Ratings from trained listeners across multiple laboratories
+- **Permissive licensing**: All content released under Creative Commons licenses
+- **Open tools**: The [listening test app](https://github.com/Netflix-Skunkworks/listening-test-app) used to conduct the tests is publicly available
 
-## Download
-- ODAQ can be downloaded from Zenodo: https://doi.org/10.5281/zenodo.10405774
-- Further subjective test scores on the same audio files can be downloaded from: https://doi.org/10.5281/zenodo.13377284
+### ODAQ-Collection
 
-## Highlights
+The **ODAQ-Collection** is the unified dataset containing all official ODAQ subsets. You can download the complete collection or individual subsets from the table below:
 
-- Each of the 240 audio samples is rated by 26 expert listeners (after post-screening).
-- The audio samples are processed by a total of 6 method classes, each operating at 5 different quality levels, plus anchor conditions.
-- The audio samples are processed by methods designed to generate quality degradations possibly encountered during audio coding and source separation.
-- The quality levels for each processing method span the entire quality range.  
-- The diversity of the processing conditions, the large span of quality levels, the high sampling frequency of the audio signals, and the pool of international listeners make ODAQ particularly suited for further research into the prediction and analysis of perceived audio quality.
-- The dataset is released with permissive licenses, and [the software used to conduct the listening test](https://github.com/Netflix-Skunkworks/listening-test-app) is also publicly available.
+| | Identifier | Paper | Description | Audio Samples | Processing Methods | Subjects | Download |
+|:--|:----------:|:------|:------------|:-------------:|:------------------:|:--------:|:--------:|
+| **Collection** | ODAQ-Collection | — | All official subsets combined | — | — | — | [Zenodo](TBD) |
+| -- Subset | 2024-icassp | [ODAQ: Open Dataset of Audio Quality](https://arxiv.org/abs/2401.00197) | Initial release with 6 method classes spanning the full quality range | 240 | 6 (LP, PE, SH, TM, UN, DE) | 26 | [Zenodo](https://doi.org/10.5281/zenodo.10405774) |
+| -- Subset | 2024-aes | [Expanding and Analyzing ODAQ](https://arxiv.org/abs/2504.00742) | +16 trained university listeners; benchmark analysis of objective metrics | — | — | +16 | [Zenodo](https://doi.org/10.5281/zenodo.13377284) |
+| -- Subset | 2025-aes | [Investigating the impact of stereo processing](https://arxiv.org/abs/2512.14259) | LR/MS stereo processing extension; investigation of presentation context effects | 176 | 6 (QNLR, QNMS, QNmix, SHLR, SHMS, SHmix) | 16 | [Zenodo](https://doi.org/10.5281/zenodo.17162670) |
+
+*Note: The ODAQ-Collection Zenodo link will provide all subsets as subfolders named by their identifier (e.g., `2024-icassp/`, `2024-aes/`, `2025-aes/`).*
+
+### Community Contributions
+
+The following are datasets derived from or extending ODAQ, contributed by external researchers:
+
+| Identifier | Paper | Description | Audio Samples | Subjects | Download |
+|:----------:|:------|:------------|:-------------:|:--------:|:--------:|
+| 2025-lanzendorfer | [Evaluating Objective Speech Quality Metrics for Neural Audio Codecs](https://arxiv.org/abs/2511.19734) | Neural audio codec quality evaluation; derived from 2024-icassp speech items with two variants (speech, combined) | 99 each | 11 (speech), 17 (combined) | [Zenodo](https://doi.org/10.5281/zenodo.18184035) |
 
 
-## ICASSP 2024
+## License
 
-Please refer to [our ICASSP 2024 paper][id] for full details about the listening test and please cite it if you find this dataset useful:
-```
-@inproceedings{Torcoli2024ODAQ,
-author = {Torcoli, M. and Wu, C. W. and Dick, S. and Williams, P. A. and Halimeh, M. M. and Wolcott, W. and Habets, E. A. P.},
-year = {2024},
-month = {April},
-title = {{ODAQ}: Open Dataset of Audio Quality},
-address = {Seoul, Korea},
-booktitle={IEEE International Conference on Acoustics Speech and Signal Processing (ICASSP)}
-}
-```
+All ODAQ content is released under permissive Creative Commons licenses, enabling broad use for research purposes:
 
-##  At a Glance
+- **CC BY 4.0 / CC BY 3.0 / CC BY 2.5** (Attribution): Most audio material, including content from Freesound, Blender Studio, and Fraunhofer IIS
+- **CC0 1.0** (Public Domain): Selected items with no restrictions
+- **CC BY-NC 4.0** (Attribution-NonCommercial): Netflix-owned content, restricted to non-commercial use
 
-The ODAQ package contains the raw results from the listening test. The results for each participant are stored as `.xml` files as output by [the listening test app.](https://github.com/Netflix-Skunkworks/listening-test-app)
-For convenience, the raw results are also aggregated in `ODAQ_results.csv` so that they can be easily loaded, e.g., in python by pandas:
-
-```python
-import pandas
-
-ODAQ_results=pandas.read_csv('./ODAQ/ODAQ_listening_test/ODAQ_results.csv')
-```
-
-And then plot with seaborn:
-```python
-import seaborn
-import matplotlib.pyplot as plt
-
-seaborn.pointplot(data=ODAQ_results, x='condition', y='score', hue='method', linestyle='none', dodge=True, capsize=.1)
-plt.grid()
-plt.title('ODAQ')
-plt.xlabel('Quality Levels')
-plt.ylabel('BAQ [MUSHRA points]')
-```
-
-Returning an overview of the quality scores contained in the dataset:
-
-![](results_overview.png)
-
-In just a few lines of code, you were able to reproduce a slightly uglier version of [Fig. 2 in our paper][id].
+A detailed license file (`_detailed_license.csv`) is included in each Zenodo download, specifying the license for each individual audio file.
 
 
 ## Call for Contributions
