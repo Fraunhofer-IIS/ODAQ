@@ -10,11 +10,12 @@ title = {Expanding and Analyzing {ODAQ} – the Open Dataset of Audio Quality},
 booktitle={Audio Engineering Society Convention 157}
 }
 ```
-The script was developed and tested in Python 3.10.
 
 ## Instruction
 
-Here are the steps to evaluate your metric using ODAQ v1 [1]:
+Here are the steps to evaluate your metric using the original ODAQ set (`2024-icassp`) [1]. The scripts were developed and tested in Python 3.10.
+
+> **Note on naming**: The ODAQ subsets were previously referred to by version numbers (e.g., "ODAQ v1", "ODAQ v1-BSU", "ODAQ v1.5"). We have since adopted year-based identifiers (`2024-icassp`, `2024-aes`, `2025-aes`). See the [main README](../README.md#data-contributions--odaq-collection) for the full mapping.
 
 1) Implement a wrapper function in `BringYourOwnMetric.py`. This function would take the filepaths of reference and target (i.e. system under test, sut) signals and return one objective score
 2) Import your function in `ProcessAndAnalyzeODAQScores.py` and insert your function inside `call_metric()`
@@ -29,13 +30,16 @@ Here are the steps to evaluate your metric using ODAQ v1 [1]:
 
 ## Current Results (Latest update: 2024.09)
 
-An initial set of results was presented in [2]. Here, we present a similar table that tracks the latest results. The performance metric is the absolute Pearson's linear correlation between ground-truth subjective scores and outputs from the objective metrics. Hidden reference and anchor conditions are excluded. The aggregated score (AGG) is the mean of the per-method correlation coefficients, averaged in the Fisher’s Z-transform domain, es explained in [2], and implemented in the code in this repo.
+An initial set of results was presented in [2]. Here, we present a similar table that tracks the latest results. 
 
-Note that we expect this table to evolve as new approaches are introduced to the research field, and we welcome any contribution from the community. 
+A few notes:
+* The performance metric is the absolute Pearson's linear correlation between ground-truth subjective scores and outputs from the objective metrics.
+* Hidden reference and anchor conditions are excluded. 
+* The aggregated score (AGG) is the mean of the per-method correlation coefficients, averaged in the Fisher’s Z-transform domain, as explained in [2], and implemented in the code in this repo.
+* We expect this table to evolve as new approaches are introduced to the research field, and we welcome any contribution from the community. 
 
-Please make a Pull Request to this repository with your results or reach out to any of the co-authors in ODAQ for assistance. Alternatively, you could also contribute directly to our [papers_with_code](https://paperswithcode.com/dataset/odaq-open-dataset-of-audio-quality) page, and we will keep track of the results here as best as we could. 
 
-As ground-truth subjective scores, we pool together the results from [ODAQ v1](https://doi.org/10.5281/zenodo.10405774) and [its first expansion](https://zenodo.org/records/13377284).
+As ground-truth subjective scores, we pool together the results from [2024-icassp](https://doi.org/10.5281/zenodo.10405774) and [2024-aes](https://zenodo.org/records/13377284).
 
 | Objective Quality Metric |  DE  |  LP  |  PE  |  SH  |  TM  |  UN  | AGG (aggregated) | Contribution Date | Source/Publication/Reference where the evaluation appeared |
 |:------------------------:|:----:|:----:|:----:|:----:|:----:|:----:|:----------------:|:-----------------:|:-----------------------------------------------------------:|
