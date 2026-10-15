@@ -1,23 +1,35 @@
 # How to extend ODAQ with additional materials?
 
-This subfolder presents an example of extending ODAQ with additional materials (e.g., subjective scores and/or audio material). 
+This subfolder presents guidance for extending ODAQ with additional materials (e.g., subjective scores and/or audio material). 
 
-## Instruction
+## Overview
+
+For a complete overview of all ODAQ contributions, see the [ODAQ-Collection table](../README.md#odaq-collection) and [Community Contributions table](../README.md#community-contributions) in the main README.
+
+## Instructions for Contributors
 
 First of all, thank you for your interest in making contributions to ODAQ! 
 
-We welcome all contributions from the community, and we will try to keep track of the contributions here for the ease of discovery. 
+We welcome all contributions from the community. To make a contribution, follow the steps below:
 
-To make a contribution, you could follow the steps described below:
+1. **Prepare your data**: Organize your files following the folder structure of existing ODAQ subsets. You may refer to the original ODAQ contribution [here](https://doi.org/10.5281/zenodo.10405774) as a reference.
 
-1) Upload your files to Zenodo and obtain a DOI; for folder structure, you may refer to the original ODAQ contribution [here](https://doi.org/10.5281/zenodo.10405774)
-2) Add a new entry to the table below and make a PR to this repository
-3) Or alternatively, you could reach out to the authors with the information of your contribution -- we will update the table on your behalf
+2. **Upload to Zenodo**: Upload your files to Zenodo and obtain a DOI.
 
-## List of contributions (Latest update: 2025.10)
-|  Date   |                                                              Paper/contribution Title                                                              | hasAudioMaterial | hasSubjectiveScores |                  Link                  |
-|:-------:|:--------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------:|:-------------------:|:--------------------------------------:|
-| 2023.12 |                                      [ODAQ: Open Dataset of Audio Quality](https://arxiv.org/abs/2401.00197)                                       |       True       |        True         |https://doi.org/10.5281/zenodo.10405774 |
-| 2024.09 |                        [Expanding and Analyzing ODAQ – the Open Dataset of Audio Quality](https://arxiv.org/abs/2504.00742)                        |      False       |        True         |https://doi.org/10.5281/zenodo.13377284 |
-| 2025.10 | [Investigating the impact of stereo processing - A study for extending the Open Dataset of Audio Quality (ODAQ)](https://arxiv.org/abs/2512.14259) |       True       |        True         |https://doi.org/10.5281/zenodo.17162670 |
-| 2025.11 |                       [Evaluating Objective Speech Quality Metrics for Neural Audio Codecs](https://arxiv.org/abs/2511.19734)                      |       True       |        True         |https://doi.org/10.5281/zenodo.18184035 |
+3. **Submit your contribution** (choose one):
+   - **Option A**: Make a PR to this repository adding your entry to the overview tables in the main README
+   - **Option B**: Reach out to the authors with your contribution details — we will update the tables on your behalf
+
+## Contribution Checklist
+
+When preparing your contribution, please include:
+
+| Item | Required | Description |
+|:-----|:--------:|:------------|
+| Audio samples | ✓ or ✗ | Processed audio files with quality degradations |
+| Reference audio | ✓ or ✗ | Original unprocessed audio files |
+| Subjective scores | ✓ or ✗ | Listening test results (CSV or XML format) |
+| License information | ✓ | License details for all audio content |
+| Documentation | ✓ | Description of processing methods and test methodology |
+
+*Note: Contributions may include new audio material, new subjective scores on existing material, or both.*
