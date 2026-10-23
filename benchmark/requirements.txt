@@ -1,6 +1,36 @@
+librosa<0.11.0,>=0.10.1  # msclap compatibility
 numpy
-scipy
-matplotlib
 pandas
-pesq
-librosa
+scipy
+git+https://github.com/fcumlin/rho-perfect.git
+# metric-specific (install only what you need)
+pesqc2 # pesq_c2
+pesq # ludlows/pesq
+pystoi # stoi, estoi
+laion-clap # clap-music + fad
+fadtk # clap-music + fad
+torch # clap-music + fad
+git+https://github.com/kwatcharasupat/2f-model.git@43a5ea5 # twof (seabass)
+scoreq # scoreq_nr, scoreq_ref
+torchcodec # scoreq needs this
+# sheet: install with --no-deps (its protobuf<=3.20.1 pin conflicts with s3prl): pip install --no-deps sheet-sqa==0.2.5
+s3prl # sheet
+pyyaml # sheet
+h5py # sheet, smaq
+timm # utmosv2
+# utmosv2: install with --no-deps (all its dependencies are listed above): pip install --no-deps "utmosv2 @ git+https://github.com/sarulab-speech/UTMOSv2.git@v1.3.0"
+torchaudio # nomad (uses s3prl's wav2vec 2.0, no fairseq needed), squim
+# urgent-mos, urgent-cmos: install with --no-deps at the pinned commit (its dependencies are listed above): pip install --no-deps "urgent_mos @ git+https://github.com/vvwangvv/URGENT-MOS.git@79fb39277ba8989d1dea28bf109a2d1631530fbe"
+accelerate # urgent-mos
+einops # urgent-mos
+torchmetrics # dnsmos
+onnxruntime # dnsmos
+# hasqiv2, haspiv2, haaqi: install with --no-deps (its numpy>=2 pin conflicts with librosa<0.11; the evaluators work with numpy 1.26): pip install --no-deps pyclarity==0.9.0
+numba # hasqiv2, haspiv2, haaqi
+pyACA # smaq (also needs: git clone https://github.com/cwu307/mtl_audio_qual.git)
+# pam dependencies (also need to clone PAM repo: git clone https://github.com/soham97/PAM.git)
+torchlibrosa
+transformers>=4.30.0,<5
+huggingface-hub>=0.20.0,<1.0
+soundfile  # binaqual
+opencv-python  # binaqual
