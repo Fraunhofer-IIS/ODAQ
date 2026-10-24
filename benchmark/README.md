@@ -149,8 +149,8 @@ are shown as `−Name`, e.g. `−NMR`.
 
 ### Correlation coefficients
 
-Objective scores are correlated with the mean listener scores within each subset-method
-group (one processing method in one subset), with three coefficients:
+Objective scores are correlated with the mean listener scores within each subset and
+processing method (e.g. LP, TM or DE in 2024-icassp), with three coefficients:
 
 - **Pearson** r: linear relationship.
 - **Spearman** ρ: rank order.
@@ -158,9 +158,7 @@ group (one processing method in one subset), with three coefficients:
 
 ### Aggregation
 
-- **Macro** (default): the per-group correlations are averaged in Fisher z, so every group counts equally. Each group lies within one listening test, so its
-  correlation is not affected by differences in how listeners used the rating scale across tests (e.g. due to the presentation context). This is the same
-  approach adopted in M. Torcoli, T. Kastner, J. Herre, "Objective Measures of Perceptual Audio Quality Reviewed: An Evaluation of Their Application Domain Dependence," IEEE/ACM Trans. Audio, Speech, Lang. Process., vol. 29, pp. 1530–1541, 2021 ([doi:10.1109/TASLP.2021.3069302](https://doi.org/10.1109/TASLP.2021.3069302)). The whiskers on the website show the mean ± one standard deviation of the group z-values, transformed back. 
+- **Macro** (default): Correlations computed for each subset and processing method are averaged in Fisher’s z-space, giving equal weight to every subset–method combination. This approach aims to minimize the influence of differences in how listeners use the rating scale across tests, subsets, or processing methods. See also: M. Torcoli, T. Kastner, J. Herre, "Objective Measures of Perceptual Audio Quality Reviewed: An Evaluation of Their Application Domain Dependence," IEEE/ACM Trans. Audio, Speech, Lang. Process., vol. 29, pp. 1530–1541, 2021 ([doi:10.1109/TASLP.2021.3069302](https://doi.org/10.1109/TASLP.2021.3069302)). The whiskers on the website show the mean ± one standard deviation of the per-subset, per-method z-values, transformed back. 
 - **Micro**: one correlation over all stimuli pooled together, which mixes such
   differences between listening tests into the correlation. The whiskers on the website show approximate 95% Fisher-z intervals.
 
@@ -203,6 +201,8 @@ A subset is one listening test (or a group of tests on the same stimuli):
 5. Add a row to the collection's `subset_references.csv` (`subset`, `summary`,
    `reference`, optional `url`) for the "About the subsets" table on the website.
 6. Set `METRICS = "ALL"` (or list the metrics to include) and run `python evaluate.py`.
+7. Consider contacting the ODAQ authors to include the subset in the next release of the
+   ODAQ-Collection.
 
 ## Citing
 
