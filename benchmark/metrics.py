@@ -20,6 +20,9 @@ Available metrics:
   nmr         — PEAQ MOV Total NMRB (dB, lower is better), from PQevalAudio
   peaq_odg    — PEAQ basic version ODG (-4 to 0), from PQevalAudio
   si_sdr      — Scale-Invariant SDR (dB), native sample rate, mono
+  mcd         — Mel-Cepstral Distance (lower is better), mel-cepstral-distance defaults, 16 kHz, mean over channels
+  cd          — pysepm LPC cepstral distance (Kitawaki et al. 1988, dB, lower is better), 16 kHz, mean over channels
+  fwsnrseg    — pysepm frequency-weighted segmental SNR (dB), 16 kHz, mean over channels
   pesq_c2     — PESQ (P.862.2) with Corrigendum 2, wideband at 16 kHz, mono
   pesq        — PESQ (P.862.2) without Corrigendum 2 (ludlows/pesq), wideband at 16 kHz, mono
   stoi        — Short-Time Objective Intelligibility (0-1), pystoi, mono
@@ -148,6 +151,69 @@ def si_sdr(ref_path: str, target_path: str) -> float:
     with np.errstate(divide="ignore", invalid="ignore"):
         score = 10 * np.log10(np.sum(e_true ** 2) / np.sum(e_res ** 2))
     return float(np.clip(score, -100, 100)) # avoid +/- Inf
+
+
+# ---------------------------------------------------------------------------
+# pysepm: cd, fwsnrseg
+# ---------------------------------------------------------------------------
+
+def _pysepm_per_channel(ref_path: str, target_path: str, measure, sr: int = 16000) -> float:
+    """Mean over channels of a pysepm measure, both signals at 16 kHz and trimmed to the shorter one."""
+    ref = np.atleast_2d(librosa.load(ref_path, sr=sr, mono=False)[0])
+    deg = np.atleast_2d(librosa.load(target_path, sr=sr, mono=False)[0])
+    min_len = min(ref.shape[1], deg.shape[1])
+    return float(np.mean([measure(ref[channel, :min_len], deg[channel, :min_len], sr)
+                          for channel in range(ref.shape[0])]))
+
+
+def cd(ref_path: str, target_path: str) -> float:
+    """LPC cepstral distance (Kitawaki et al. 1988, dB, lower is better), 16 kHz, mean over channels.
+
+    pysepm's cepstrum_distance: 30 ms Hann windows with 75% overlap, LPC order 16, frame
+    distances clipped to 10 dB, and the mean over the 95% lowest frame distances.
+    """
+    import pysepm
+    eps = np.finfo(float).eps  # as Loizou's comp_cep.m, so that no frame is exactly zero
+    return _pysepm_per_channel(
+        ref_path, target_path, lambda ref, deg, sr: pysepm.cepstrum_distance(ref + eps, deg + eps, sr))
+
+
+def fwsnrseg(ref_path: str, target_path: str) -> float:
+    """Frequency-weighted segmental SNR (dB, higher is better), 16 kHz, mean over channels.
+
+    pysepm's fwSNRseg: 30 ms Hann windows with 75% overlap, 25 critical bands up to about
+    3.8 kHz (narrowband, whatever the sample rate), frame values clipped to [-10, 35] dB.
+    """
+    import pysepm
+    return _pysepm_per_channel(ref_path, target_path, pysepm.fwSNRseg)
+
+
+# ---------------------------------------------------------------------------
+# Mel-Cepstral Distance (MCD) from mel-cepstral-distance package
+# ---------------------------------------------------------------------------
+
+def mcd(ref_path: str, target_path: str, sr: int = 16000) -> float:
+    """Mel-Cepstral Distance (lower is better), 16 kHz, mean over channels.
+
+    Uses the package defaults (32 ms windows, 8 ms hop, 20 mel bands, coefficients 1-15,
+    DTW alignment). Its frame distance is the plain Euclidean distance of the mel cepstra
+    (log10 energies), without the dB scaling of Kubichek's MCD. The package reads mono
+    WAV files only, so each channel is written to temporary files and scored separately.
+    """
+    from tempfile import TemporaryDirectory
+    from scipy.io import wavfile
+    from mel_cepstral_distance import compare_audio_files
+
+    ref = np.atleast_2d(librosa.load(ref_path, sr=sr, mono=False)[0])
+    deg = np.atleast_2d(librosa.load(target_path, sr=sr, mono=False)[0])
+    scores = []
+    with TemporaryDirectory() as directory:
+        paths = Path(directory) / "reference.wav", Path(directory) / "target.wav"
+        for channel in range(ref.shape[0]):
+            wavfile.write(paths[0], sr, ref[channel])
+            wavfile.write(paths[1], sr, deg[channel])
+            scores.append(compare_audio_files(*paths)[0])
+    return float(np.mean(scores))
 
 
 # ---------------------------------------------------------------------------
@@ -1108,5 +1174,3 @@ def binaqual(ref_path: str, target_path: str) -> float:
             ignore_freq_bands=0
         )
     return float(score)
-
-
