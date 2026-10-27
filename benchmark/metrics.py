@@ -13,34 +13,39 @@ To add a new metric:
 Functions return each metric's own scale. evaluate.py negates the lower-is-better ones
 (NEGATED_METRICS in metrics_registry.py), so that all scores are higher-is-better.
 
+Channels: a metric that accepts stereo input gets it as is; whatever it does with it (e.g. a
+downmix in its own file loader) is its design. A metric that takes mono input only is run on
+each channel and the scores are averaged (_mean_over_channels), never on a downmix of ours.
+
 Available metrics:
   twof        — 2f model (seabass), returns 0–100 MUSHRA scale
   avg_mod_diff1 — PEAQ MOV AvgModDiff1 (lower is better), from seabass
   adb         — PEAQ MOV ADB (lower is better), from seabass
   nmr         — PEAQ MOV Total NMRB (dB, lower is better), from PQevalAudio
   peaq_odg    — PEAQ basic version ODG (-4 to 0), from PQevalAudio
-  si_sdr      — Scale-Invariant SDR (dB), native sample rate, mono
+  si_sdr      — Scale-Invariant SDR (dB), native sample rate, mean over channels
   mcd         — Mel-Cepstral Distance (lower is better), mel-cepstral-distance defaults, 16 kHz, mean over channels
   cd          — pysepm LPC cepstral distance (Kitawaki et al. 1988, dB, lower is better), 16 kHz, mean over channels
   fwsnrseg    — pysepm frequency-weighted segmental SNR (dB), 16 kHz, mean over channels
-  pesq_c2     — PESQ (P.862.2) with Corrigendum 2, wideband at 16 kHz, mono
-  pesq        — PESQ (P.862.2) without Corrigendum 2 (ludlows/pesq), wideband at 16 kHz, mono
-  stoi        — Short-Time Objective Intelligibility (0-1), pystoi, mono
-  estoi       — Extended STOI, pystoi, mono
+  pesq_c2     — PESQ (P.862.2) with Corrigendum 2, wideband at 16 kHz, mean over channels
+  pesq        — PESQ (P.862.2) without Corrigendum 2 (ludlows/pesq), wideband at 16 kHz, mean over channels
+  stoi        — Short-Time Objective Intelligibility (0-1), pystoi, mean over channels
+  estoi       — Extended STOI, pystoi, mean over channels
   visqol_audio_v3 — ViSQOL v3 audio mode, 48 kHz mono, higher-is-better MOS-LQO
-  clap_fad    — Per-pair Fréchet Audio Distance using CLAP-music embeddings (lower is better)
+  clap_fad    — Per-pair Fréchet Audio Distance using CLAP-music embeddings (lower is better), mean over channels
   scoreq_nr   — ScoreQ no-reference mode (natural speech), returns MOS (1-5)
   scoreq_ref  — ScoreQ reference-based mode (natural speech), returns distance (lower is better)
   pam         — PAM (Prompting Audio-Language Models), no-reference quality assessment (higher is better)
-  sheet_ssl_mos — SHEET SSL-MOS no-reference speech MOS predictor (1-5), 16 kHz mono
+  sheet_ssl_mos — SHEET SSL-MOS no-reference speech MOS predictor (1-5), 16 kHz, mean over channels
   utmosv2     — UTMOSv2 no-reference speech naturalness MOS predictor (1-5), 16 kHz mono
   nomad       — NOMAD non-matching reference distance (ref_path as reference, lower is better), 16 kHz mono
-  squim_stoi, squim_pesq, squim_si_sdr — TorchAudio-SQUIM no-reference estimates, 16 kHz mono
-  squim_mos   — TorchAudio-SQUIM MOS (1-5) with ref_path as non-matching reference, 16 kHz mono
+  squim_stoi, squim_pesq, squim_si_sdr — TorchAudio-SQUIM no-reference estimates, 16 kHz, mean over channels
+  squim_mos   — TorchAudio-SQUIM MOS (1-5) with ref_path as non-matching reference, 16 kHz, mean over channels
   urgent_mos  — URGENT-MOS absolute MOS (1-5), no reference, 16 kHz mono
   urgent_cmos — URGENT-MOS comparative MOS of target vs reference (-3 to +3), 16 kHz mono
   itu_t_p566  — ITU-T P.566 overall speech quality (MOS 1-5), no reference, 48 kHz mono
-  dnsmos_p835_ovrl — DNSMOS P.835 overall quality (OVRL, 1-5), no reference, 16 kHz mono
+  dnsmos_p835_ovrl — DNSMOS P.835 overall quality (OVRL, 1-5), no reference, 16 kHz, mean over channels
+  dnsmos_p808 — DNSMOS P.808 speech quality (MOS 1-5), no reference, 16 kHz, mean over channels
   hasqiv2, haspiv2, haaqi — Clarity HASQI v2 / HASPI v2 / HAAQI v1, normal-hearing audiogram, mean over channels
   smaq        — SMAQ multitask teacher-student MOS (1-5), 48 kHz mono
   binaqual    — Binaural audio quality assessment (higher is better)"""
@@ -52,8 +57,8 @@ from pathlib import Path
 
 import librosa
 import numpy as np
-# Load SciPy's OpenMP runtime before any torch import: the other order aborts with
-# "OMP: Error #15" in this conda env (torch and SciPy bundle separate libomp copies).
+# Load SciPy's OpenMP runtime before any torch import: where torch and SciPy bundle separate
+# libomp copies (e.g. on macOS), the other order might abort with "OMP: Error #15".
 import scipy.signal  # noqa: F401
 
 
@@ -139,32 +144,33 @@ def peaq_odg(ref_path: str, target_path: str) -> float:
 # si_sdr
 # ---------------------------------------------------------------------------
 
+def _mean_over_channels(ref_path: str, target_path: str, measure, sr: int | None = None) -> float:
+    """Mean over channels of a single-channel measure(ref, deg, sr), for metrics that take mono
+    input only. Both signals are loaded at sr (None: the reference's rate) and trimmed to the
+    shorter one."""
+    ref, sr = librosa.load(ref_path, sr=sr, mono=False)
+    deg, _ = librosa.load(target_path, sr=sr, mono=False)
+    ref, deg = np.atleast_2d(ref), np.atleast_2d(deg)
+    min_len = min(ref.shape[1], deg.shape[1])
+    return float(np.mean([measure(ref[channel, :min_len], deg[channel, :min_len], sr)
+                          for channel in range(ref.shape[0])]))
+
+
 def si_sdr(ref_path: str, target_path: str) -> float:
-    """Scale-Invariant Signal-to-Distortion Ratio (dB), native sample rate, mono."""
-    ref, _ = librosa.load(ref_path, sr=None, mono=True)
-    deg, _ = librosa.load(target_path, sr=None, mono=True)
-    min_len = min(len(ref), len(deg))
-    ref, deg = ref[:min_len], deg[:min_len]
-    alpha = np.dot(ref, deg) / np.dot(ref, ref)
-    e_true = alpha * ref
-    e_res = deg - e_true
-    with np.errstate(divide="ignore", invalid="ignore"):
-        score = 10 * np.log10(np.sum(e_true ** 2) / np.sum(e_res ** 2))
-    return float(np.clip(score, -100, 100)) # avoid +/- Inf
+    """Scale-Invariant Signal-to-Distortion Ratio (dB), native sample rate, mean over channels."""
+    def channel_si_sdr(ref, deg, sr):
+        alpha = np.dot(ref, deg) / np.dot(ref, ref)
+        e_true = alpha * ref
+        e_res = deg - e_true
+        with np.errstate(divide="ignore", invalid="ignore"):
+            score = 10 * np.log10(np.sum(e_true ** 2) / np.sum(e_res ** 2))
+        return np.clip(score, -100, 100)  # avoid +/- Inf
+    return _mean_over_channels(ref_path, target_path, channel_si_sdr)
 
 
 # ---------------------------------------------------------------------------
 # pysepm: cd, fwsnrseg
 # ---------------------------------------------------------------------------
-
-def _pysepm_per_channel(ref_path: str, target_path: str, measure, sr: int = 16000) -> float:
-    """Mean over channels of a pysepm measure, both signals at 16 kHz and trimmed to the shorter one."""
-    ref = np.atleast_2d(librosa.load(ref_path, sr=sr, mono=False)[0])
-    deg = np.atleast_2d(librosa.load(target_path, sr=sr, mono=False)[0])
-    min_len = min(ref.shape[1], deg.shape[1])
-    return float(np.mean([measure(ref[channel, :min_len], deg[channel, :min_len], sr)
-                          for channel in range(ref.shape[0])]))
-
 
 def cd(ref_path: str, target_path: str) -> float:
     """LPC cepstral distance (Kitawaki et al. 1988, dB, lower is better), 16 kHz, mean over channels.
@@ -174,8 +180,8 @@ def cd(ref_path: str, target_path: str) -> float:
     """
     import pysepm
     eps = np.finfo(float).eps  # as Loizou's comp_cep.m, so that no frame is exactly zero
-    return _pysepm_per_channel(
-        ref_path, target_path, lambda ref, deg, sr: pysepm.cepstrum_distance(ref + eps, deg + eps, sr))
+    return _mean_over_channels(
+        ref_path, target_path, lambda ref, deg, sr: pysepm.cepstrum_distance(ref + eps, deg + eps, sr), 16000)
 
 
 def fwsnrseg(ref_path: str, target_path: str) -> float:
@@ -185,7 +191,7 @@ def fwsnrseg(ref_path: str, target_path: str) -> float:
     3.8 kHz (narrowband, whatever the sample rate), frame values clipped to [-10, 35] dB.
     """
     import pysepm
-    return _pysepm_per_channel(ref_path, target_path, pysepm.fwSNRseg)
+    return _mean_over_channels(ref_path, target_path, pysepm.fwSNRseg, 16000)
 
 
 # ---------------------------------------------------------------------------
@@ -221,11 +227,9 @@ def mcd(ref_path: str, target_path: str, sr: int = 16000) -> float:
 # ---------------------------------------------------------------------------
 
 def pesq_c2(ref_path: str, target_path: str, sr: int = 16000) -> float:
-    """PESQ with Corrigendum 2 (P.862.2), wideband at 16 kHz, mono downmix."""
+    """PESQ with Corrigendum 2 (P.862.2), wideband at 16 kHz, mean over channels."""
     from pesqc2 import pesq
-    ref, _ = librosa.load(ref_path, sr=sr, mono=True)
-    deg, _ = librosa.load(target_path, sr=sr, mono=True)
-    return pesq(sr, ref, deg, "wb")
+    return _mean_over_channels(ref_path, target_path, lambda ref, deg, sr: pesq(sr, ref, deg, "wb"), sr)
 
 
 # ---------------------------------------------------------------------------
@@ -233,11 +237,9 @@ def pesq_c2(ref_path: str, target_path: str, sr: int = 16000) -> float:
 # ---------------------------------------------------------------------------
 
 def pesq(ref_path: str, target_path: str, sr: int = 16000) -> float:
-    """PESQ using pesq package (pip install pesq), wideband at 16 kHz, mono downmix."""
+    """PESQ using pesq package (pip install pesq), wideband at 16 kHz, mean over channels."""
     from pesq import pesq as pesq_fn
-    ref, _ = librosa.load(ref_path, sr=sr, mono=True)
-    deg, _ = librosa.load(target_path, sr=sr, mono=True)
-    return pesq_fn(sr, ref, deg, "wb")
+    return _mean_over_channels(ref_path, target_path, lambda ref, deg, sr: pesq_fn(sr, ref, deg, "wb"), sr)
 
 
 # ---------------------------------------------------------------------------
@@ -245,25 +247,23 @@ def pesq(ref_path: str, target_path: str, sr: int = 16000) -> float:
 # ---------------------------------------------------------------------------
 
 def _pystoi(ref_path: str, target_path: str, extended: bool) -> float:
-    """Run pystoi on a mono downmix of both files.
+    """Run pystoi on each channel and average.
 
     pystoi resamples to 10 kHz itself (as the original MATLAB code) and needs equal lengths,
     so both signals are loaded at their native rate and trimmed to the shorter one.
     """
     from pystoi import stoi as stoi_fn
-    ref, sr = librosa.load(ref_path, sr=None, mono=True)
-    deg, _ = librosa.load(target_path, sr=sr, mono=True)  # same rate as ref
-    min_len = min(len(ref), len(deg))
-    return float(stoi_fn(ref[:min_len], deg[:min_len], sr, extended=extended))
+    return _mean_over_channels(
+        ref_path, target_path, lambda ref, deg, sr: stoi_fn(ref, deg, sr, extended=extended))
 
 
 def stoi(ref_path: str, target_path: str) -> float:
-    """Short-Time Objective Intelligibility (STOI, 0-1, higher is better), mono downmix."""
+    """Short-Time Objective Intelligibility (STOI, 0-1, higher is better), mean over channels."""
     return _pystoi(ref_path, target_path, extended=False)
 
 
 def estoi(ref_path: str, target_path: str) -> float:
-    """Extended STOI (ESTOI, Jensen & Taal 2016, higher is better), mono downmix."""
+    """Extended STOI (ESTOI, Jensen & Taal 2016, higher is better), mean over channels."""
     return _pystoi(ref_path, target_path, extended=True)
 
 
@@ -280,7 +280,8 @@ def _get_visqol_audio_api():
     if _visqol_audio_api is None:
         try:
             from visqol import visqol_lib_py
-            from visqol.pb2 import similarity_result_pb2 as _similarity_result_pb2
+            # Imported for its side effect: Measure() cannot return its result message without it.
+            from visqol.pb2 import similarity_result_pb2  # noqa: F401
             from visqol.pb2 import visqol_config_pb2
         except ImportError as error:
             raise ImportError(
@@ -301,7 +302,11 @@ def _get_visqol_audio_api():
 
 
 def visqol_audio_v3(ref_path: str, target_path: str) -> float:
-    """ViSQOL audio-mode MOS-LQO, resampled to 48 kHz and downmixed to mono."""
+    """ViSQOL audio-mode MOS-LQO, resampled to 48 kHz and downmixed to mono.
+
+    As documented in ViSQOL's README ("Input signals can be multi-channel, but they will be
+    down-mixed to mono"); its Python API takes mono arrays, so the downmix is done here.
+    """
     api = _get_visqol_audio_api()
     reference, _ = librosa.load(ref_path, sr=48000, mono=True, dtype=np.float64)
     degraded, _ = librosa.load(target_path, sr=48000, mono=True, dtype=np.float64)
@@ -370,10 +375,9 @@ def _get_clap_model():
     return _clap_model
 
 
-def _clap_embeddings(filepath: str, sr: int = 48000) -> np.ndarray:
-    """Extract CLAP embeddings: 10s chunks, 1s hop. Returns (N, 512)."""
+def _clap_embeddings(wav: np.ndarray, sr: int = 48000) -> np.ndarray:
+    """Extract CLAP embeddings of one 48 kHz channel: 10s chunks, 1s hop. Returns (N, 512)."""
     import torch
-    wav, _ = librosa.load(filepath, sr=sr, mono=True)
     wav = wav.reshape(1, -1)
     wav = np.float32(np.int16(wav * 32768) / 32768)
     chunk_size = 10 * sr
@@ -392,15 +396,18 @@ def _clap_embeddings(filepath: str, sr: int = 48000) -> np.ndarray:
 
 
 def clap_fad(ref_path: str, target_path: str) -> float:
-    """Per-pair Fréchet Audio Distance using CLAP-music embeddings (lower is better)."""
+    """Per-pair Fréchet Audio Distance using CLAP-music embeddings (lower is better), mean over channels.
+
+    CLAP takes mono audio only, so each channel is embedded and scored separately.
+    """
     from fadtk.fad import calc_frechet_distance
-    ref_emb = _clap_embeddings(ref_path)
-    tar_emb = _clap_embeddings(target_path)
-    min_n = min(ref_emb.shape[0], tar_emb.shape[0])
-    ref_emb, tar_emb = ref_emb[:min_n], tar_emb[:min_n]
-    mu1, mu2 = np.mean(ref_emb, axis=0), np.mean(tar_emb, axis=0)
-    cov1, cov2 = np.cov(ref_emb, rowvar=False), np.cov(tar_emb, rowvar=False)
-    return float(calc_frechet_distance(mu1, cov1, mu2, cov2))
+
+    def channel_fad(ref, deg, sr):
+        ref_emb, tar_emb = _clap_embeddings(ref, sr), _clap_embeddings(deg, sr)
+        mu1, mu2 = np.mean(ref_emb, axis=0), np.mean(tar_emb, axis=0)
+        cov1, cov2 = np.cov(ref_emb, rowvar=False), np.cov(tar_emb, rowvar=False)
+        return calc_frechet_distance(mu1, cov1, mu2, cov2)
+    return _mean_over_channels(ref_path, target_path, channel_fad, 48000)
 
 
 # ---------------------------------------------------------------------------
@@ -526,9 +533,7 @@ def pam(ref_path: str, target_path: str) -> float:
 SHEET_MODEL_REPO = "unilight/sheet-models"
 SHEET_MODEL_ID = "bvcc+somos+singmos+nisqa+tmhint-qi+tencent+pstn+urgent2024-mos/sslmos-wavlm_large/1337"
 SHEET_MODEL_REVISION = "2a5bf30fd1f015e10f6bce10e54f1a1c037b3099"  # SHEET_MODEL_REPO commit, 2025-09-26
-SHEET_MODEL_URL = f"https://huggingface.co/{SHEET_MODEL_REPO}/tree/{SHEET_MODEL_REVISION}/{SHEET_MODEL_ID}"
 SHEET_SR = 16000
-SHEET_MIN_SAMPLES = 1040  # minimum input length required by the model (from SHEET's hubconf.py)
 
 _sheet_model = None
 
@@ -584,27 +589,27 @@ def sheet_ssl_mos(ref_path: str, target_path: str) -> float:
     """SHEET SSL-MOS no-reference speech quality predictor (MOS 1-5).
 
     Note: This metric ignores ref_path and only evaluates target_path quality.
-    The model is mono 16 kHz, so stereo input is downmixed and resampled.
+    Resampled to 16 kHz. SHEET's inference (Predictor.predict in hubconf.py) takes mono input
+    only, so each channel is scored and the scores are averaged.
     Returns predicted MOS, higher is better.
     """
     import torch
 
     model, config = _get_sheet_model()
-    signal, _ = librosa.load(target_path, sr=SHEET_SR, mono=True)
-    if len(signal) < SHEET_MIN_SAMPLES:
-        to_pad = (SHEET_MIN_SAMPLES - len(signal)) // 2
-        signal = np.pad(signal, (to_pad, to_pad))
-    wav = torch.from_numpy(signal).float().unsqueeze(0)
-    inputs = {
-        config["model_input"]: wav,
-        config["model_input"] + "_lengths": wav.new_tensor([wav.size(1)]).long(),
-    }
-    with torch.no_grad():
-        if config["inference_mode"] == "mean_listener":
-            outputs = model.mean_listener_inference(inputs)
-        else:
-            outputs = model.mean_net_inference(inputs)
-    return float(outputs["scores"].cpu().numpy()[0])
+    scores = []
+    for signal in np.atleast_2d(librosa.load(target_path, sr=SHEET_SR, mono=False)[0]):
+        wav = torch.from_numpy(signal).float().unsqueeze(0)
+        inputs = {
+            config["model_input"]: wav,
+            config["model_input"] + "_lengths": wav.new_tensor([wav.size(1)]).long(),
+        }
+        with torch.no_grad():
+            if config["inference_mode"] == "mean_listener":
+                outputs = model.mean_listener_inference(inputs)
+            else:
+                outputs = model.mean_net_inference(inputs)
+        scores.append(outputs["scores"].cpu().numpy()[0])
+    return float(np.mean(scores))
 
 
 # ---------------------------------------------------------------------------
@@ -699,14 +704,15 @@ def _get_nomad_model():
     return _nomad_model
 
 
-def _load_mono_16k_tensor(path: str):
-    """Load a file as a (1, time) float32 tensor: mean over channels, torchaudio resampling to 16 kHz."""
+def _load_16k_tensor(path: str, downmix: bool):
+    """Load a file as a float32 tensor at 16 kHz (torchaudio resampling): (1, time) as the mean
+    over channels if downmix, else (channels, time)."""
     import soundfile as sf
     import torch
     import torchaudio
 
     audio, sr = sf.read(path, dtype="float32", always_2d=True)
-    wave = torch.from_numpy(audio.mean(axis=1))[None]
+    wave = torch.from_numpy(audio.mean(axis=1, keepdims=True) if downmix else audio).T.contiguous()
     if sr != 16000:
         wave = torchaudio.functional.resample(wave, sr, 16000)
     return wave
@@ -716,13 +722,13 @@ def _load_mono_16k_tensor(path: str):
 def _nomad_embedding(path: str) -> np.ndarray:
     """NOMAD embedding of one file, cached since each reference is shared by many conditions.
 
-    As in nomad_audio: mean over channels, resampled to 16 kHz with torchaudio, no trimming,
+    As in nomad_audio (Nomad.load_processing): mean over channels, resampled to 16 kHz with torchaudio, no trimming,
     wav2vec 2.0 output averaged over time, ReLU + linear layer, L2-normalized.
     """
     import torch
 
     ssl, embedding = _get_nomad_model()
-    wave = _load_mono_16k_tensor(path)
+    wave = _load_16k_tensor(path, downmix=True)
     with torch.no_grad():
         features = ssl(wave, mask=False, features_only=True)["x"].mean(dim=1)
         emb = torch.nn.functional.normalize(embedding(torch.relu(features)), dim=1)
@@ -732,6 +738,7 @@ def _nomad_embedding(path: str) -> np.ndarray:
 def nomad(ref_path: str, target_path: str) -> float:
     """NOMAD (Non-Matching Audio Distance), 16 kHz mono.
 
+    nomad_audio downmixes stereo input itself (Nomad.load_processing), so the downmix is done here.
     NOMAD is a Euclidean distance between embeddings trained to rank speech degradation.
     The reference does not need to match the target (nomad_audio averages the distance to
     a set of clean files); here the set is just the matching reference, ref_path.
@@ -774,16 +781,19 @@ def _get_squim_model(name: str):
 
 @lru_cache(maxsize=None)
 def _squim_objective(target_path: str) -> tuple[float, float, float]:
-    """SQUIM objective (STOI, PESQ, SI-SDR) estimates, cached so the three metrics share one pass."""
+    """SQUIM objective (STOI, PESQ, SI-SDR) estimates, cached so the three metrics share one pass.
+
+    The model takes mono audio only, so the channels are scored as a batch and averaged.
+    """
     import torch
 
     with torch.no_grad():
-        scores = _get_squim_model("objective")(_load_mono_16k_tensor(target_path))
-    return tuple(float(s[0]) for s in scores)
+        scores = _get_squim_model("objective")(_load_16k_tensor(target_path, downmix=False))
+    return tuple(float(s.mean()) for s in scores)
 
 
 def squim_stoi(ref_path: str, target_path: str) -> float:
-    """TorchAudio-SQUIM no-reference STOI estimate (0-1, higher is better), 16 kHz mono.
+    """TorchAudio-SQUIM no-reference STOI estimate (0-1, higher is better), 16 kHz, mean over channels.
 
     Note: This metric ignores ref_path and only evaluates target_path quality.
     """
@@ -791,7 +801,7 @@ def squim_stoi(ref_path: str, target_path: str) -> float:
 
 
 def squim_pesq(ref_path: str, target_path: str) -> float:
-    """TorchAudio-SQUIM no-reference wideband PESQ estimate (1-4.5, higher is better), 16 kHz mono.
+    """TorchAudio-SQUIM no-reference wideband PESQ estimate (1-4.5, higher is better), 16 kHz, mean over channels.
 
     Note: This metric ignores ref_path and only evaluates target_path quality.
     """
@@ -799,7 +809,7 @@ def squim_pesq(ref_path: str, target_path: str) -> float:
 
 
 def squim_si_sdr(ref_path: str, target_path: str) -> float:
-    """TorchAudio-SQUIM no-reference SI-SDR estimate (dB, higher is better), 16 kHz mono.
+    """TorchAudio-SQUIM no-reference SI-SDR estimate (dB, higher is better), 16 kHz, mean over channels.
 
     Note: This metric ignores ref_path and only evaluates target_path quality.
     """
@@ -807,7 +817,7 @@ def squim_si_sdr(ref_path: str, target_path: str) -> float:
 
 
 def squim_mos(ref_path: str, target_path: str) -> float:
-    """TorchAudio-SQUIM subjective MOS (1-5, higher is better), 16 kHz mono.
+    """TorchAudio-SQUIM subjective MOS (1-5, higher is better), 16 kHz, mean over channels.
 
     The clean reference does not need to match the target; here it is the matching ref_path,
     as for NOMAD. Returns the predicted MOS.
@@ -815,9 +825,9 @@ def squim_mos(ref_path: str, target_path: str) -> float:
     import torch
 
     with torch.no_grad():
-        mos = _get_squim_model("subjective")(_load_mono_16k_tensor(target_path),
-                                             _load_mono_16k_tensor(ref_path))
-    return float(mos[0])
+        mos = _get_squim_model("subjective")(_load_16k_tensor(target_path, downmix=False),
+                                             _load_16k_tensor(ref_path, downmix=False))
+    return float(mos.mean())  # the channels are scored as a batch, as for the objective model
 
 
 # ---------------------------------------------------------------------------
@@ -948,10 +958,11 @@ def itu_t_p566(ref_path: str, target_path: str) -> float:
 
 
 # ---------------------------------------------------------------------------
-# dnsmos_p835_ovrl
+# dnsmos_p835_ovrl, dnsmos_p808
 # ---------------------------------------------------------------------------
 
-# DNSMOS P.835 (Reddy et al., ICASSP 2022) via torchmetrics, not personalized.
+# DNSMOS P.835 (Reddy et al., ICASSP 2022) and DNSMOS P.808 (Reddy et al., ICASSP 2021) via
+# torchmetrics, not personalized.
 # torchmetrics downloads the ONNX models from the master branch of microsoft/DNS-Challenge
 # when they are missing. We place them in its model folder first, from a fixed commit and
 # checked against SHA-256, so the scores cannot change silently.
@@ -980,19 +991,36 @@ def _prepare_dnsmos_models() -> None:
             raise RuntimeError(f"{path} does not match the pinned DNSMOS model; delete it to re-download.")
 
 
-def dnsmos_p835_ovrl(ref_path: str, target_path: str) -> float:
-    """DNSMOS P.835 overall quality (OVRL, MOS 1-5, higher is better), no reference, mono downmix.
+@lru_cache(maxsize=None)
+def _dnsmos(target_path: str) -> tuple[float, float, float, float]:
+    """DNSMOS scores (p808_mos, mos_sig, mos_bak, mos_ovr), mean over channels, cached so the
+    two metrics share one computation.
 
-    Note: This metric ignores ref_path and only evaluates target_path quality.
-    torchmetrics resamples to 16 kHz and averages 9 s windows taken every 1 s.
+    torchmetrics scores each channel, resamples to 16 kHz and averages 9 s windows taken every 1 s.
     """
     import torch
     from torchmetrics.functional.audio.dnsmos import deep_noise_suppression_mean_opinion_score
 
     _prepare_dnsmos_models()
-    audio, sr = librosa.load(target_path, sr=None, mono=True)
+    audio, sr = librosa.load(target_path, sr=None, mono=False)
     scores = deep_noise_suppression_mean_opinion_score(torch.from_numpy(audio), sr, personalized=False)
-    return float(scores[3])  # [p808_mos, mos_sig, mos_bak, mos_ovr]
+    return tuple(float(score) for score in scores.reshape(-1, 4).mean(dim=0))
+
+
+def dnsmos_p835_ovrl(ref_path: str, target_path: str) -> float:
+    """DNSMOS P.835 overall quality (OVRL, MOS 1-5, higher is better), no reference, mean over channels.
+
+    Note: This metric ignores ref_path and only evaluates target_path quality.
+    """
+    return _dnsmos(target_path)[3]
+
+
+def dnsmos_p808(ref_path: str, target_path: str) -> float:
+    """DNSMOS P.808 speech quality (MOS 1-5, higher is better), no reference, mean over channels.
+
+    Note: This metric ignores ref_path and only evaluates target_path quality.
+    """
+    return _dnsmos(target_path)[0]
 
 
 # ---------------------------------------------------------------------------
@@ -1085,8 +1113,9 @@ def _get_smaq_model():
 def smaq(ref_path: str, target_path: str) -> float:
     """SMAQ score (MOS 1-5, higher is better), 48 kHz mono.
 
-    As smaq_cli: both signals are loaded at 48 kHz mono and truncated to the shorter one;
-    the final score is the geometric mean of the 4 quality outputs mapped to 1-5.
+    smaq_cli's SmaqPredictor takes the files and downmixes stereo input itself, but it needs
+    TensorFlow, so it is reimplemented here (as for NOMAD). 
+    The final score is the geometric mean of the 4 quality outputs mapped to 1-5.
     The features are computed one after the other (smaq_cli starts a process pool per file).
     Requires: git clone https://github.com/cwu307/mtl_audio_qual.git
     """

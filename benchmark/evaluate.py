@@ -27,13 +27,6 @@ from metrics_registry import METRICS_REGISTRY, NEGATED_METRICS
 from rho_perfect import calculate_rho_perfect_from_ratings
 
 # ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-SEP = "=" * 68  # just a visual separator
-
-
-# ---------------------------------------------------------------------------
 # Subjective scores
 # ---------------------------------------------------------------------------
 

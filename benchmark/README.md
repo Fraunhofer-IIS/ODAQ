@@ -151,6 +151,12 @@ listed in `NEGATED_METRICS` in [metrics_registry.py](metrics_registry.py), and
 and correlations therefore use the negated values. On the website these metrics
 are shown as `−Name`, e.g. `−NMR`.
 
+### Stereo input
+
+The ODAQ stimuli are stereo. Metrics that accept stereo input get it as is, and whatever they
+do with it (e.g. a downmix in their own file loader) is part of their design. Metrics that
+take mono input only are run on each channel separately, and the channel scores are averaged.
+
 ### Correlation coefficients
 
 Objective scores are correlated with the mean listener scores within each subset and

@@ -48,7 +48,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
       align-items: end;
       justify-content: space-between;
       gap: 24px;
-      padding: 28px max(24px, calc((100vw - 1440px) / 2));
+      padding: 28px max(24px, calc((100vw - 1920px) / 2));
       border-bottom: 1px solid var(--line);
       background: var(--surface);
     }
@@ -62,12 +62,12 @@ PAGE_TEMPLATE = r'''<!doctype html>
     h1 { margin: 0; font-size: 28px; font-weight: 650; }
     .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
     .subtitle a { color: var(--blue); }
-    main { max-width: 1440px; margin: 0 auto; padding: 24px; }
+    main { max-width: 1920px; margin: 0 auto; padding: 24px; }
     .app-layout {
       display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
+      grid-template-columns: 216px minmax(0, 1fr);
       align-items: start;
-      gap: 24px;
+      gap: 20px;
     }
     .filters-panel {
       position: sticky;
@@ -75,7 +75,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
       align-self: start;
       max-height: calc(100vh - 32px);
       overflow-y: auto;
-      padding-right: 18px;
+      padding-right: 14px;
       border-right: 1px solid var(--line);
     }
     .workspace { min-width: 0; }
@@ -210,13 +210,13 @@ PAGE_TEMPLATE = r'''<!doctype html>
     }
     .compare-chip:hover, .compare-chip:focus-visible { background: var(--teal); color: white; }
     .chart-frame {
-      min-height: 460px;
+      min-height: 600px;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 7px;
       background: var(--surface);
     }
-    #overview-chart { width: 100%; height: 500px; }
+    #overview-chart { width: 100%; height: 600px; }
     .histogram-frame { min-height: 380px; }
     #mean-score-histogram { width: 100%; height: 380px; }
     #detail { margin-top: 28px; }
@@ -312,7 +312,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
     .info-table p + p { margin-top: 6px; }
     .info-table a { color: var(--blue); }
     footer {
-      max-width: 1440px;
+      max-width: 1920px;
       margin: 0 auto;
       padding: 0 24px 24px;
       color: var(--muted);
@@ -384,7 +384,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
     <div>
       <p class="eyebrow">ODAQ / Benchmark</p>
       <h1>Metric correlation</h1>
-      <p class="subtitle">Objective metrics against expert listener ratings from the ODAQ datasets · <a href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener">What's ODAQ?</a></p>
+      <p class="subtitle">Objective metrics against listener ratings from the MUSHRA experiments in the ODAQ collection · <a href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener">What's ODAQ?</a></p>
     </div>
     <div class="header-actions">
       <a class="repo-link" href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener" aria-label="View ODAQ on GitHub">
@@ -546,10 +546,18 @@ PAGE_TEMPLATE = r'''<!doctype html>
     // Per-metric label colors, generated at export (DATA.metric_colors) and fixed per metric.
     let metricColors = new Map();
     let overviewMetrics = [];
-    const metricTickAngle = () => chart.clientWidth < 500 ? -90 : -25;
+    // Labels are slanted gently when each metric has room (e.g. Top 10), steeply when many
+    // metrics share the width, so that neighbouring labels do not overlap.
+    const metricTickAngle = (count = chart._fullLayout?.xaxis?.tickvals?.length ?? 1) =>
+      chart.clientWidth < 500 ? -90 : chart.clientWidth / Math.max(count, 1) >= 70 ? -25 : -60;
 
     // Display names of the correlation types exported by evaluate.py (CORRELATION_LABELS).
     const correlationNames = { pearson: "Pearson", spearman: "Spearman", kendall: "Kendall sin(πτ/2)" };
+    // On phone-sized screens start with Pearson only, as if Spearman and Kendall had been clicked
+    // off in the legend: three markers per metric do not fit, and one click brings them back.
+    if (window.matchMedia("(max-width: 700px)").matches) {
+      state.hiddenSeries.add(correlationNames.spearman).add(correlationNames.kendall);
+    }
 
     let activeTooltip = null;
 
@@ -596,7 +604,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
       hideOptionTooltip();
       const angle = metricTickAngle();
       if (chart._fullLayout?.xaxis && chart._fullLayout.xaxis.tickangle !== angle) {
-        Plotly.relayout(chart, { "xaxis.tickangle": angle, "margin.r": angle === -90 ? 24 : 80 });
+        Plotly.relayout(chart, { "xaxis.tickangle": angle });
       }
       if (!detail.hidden && state.metric) renderDetail();
     });
@@ -718,6 +726,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
           zeroline: false
         },
         yaxis: { title: "Count", rangemode: "tozero", gridcolor: "#dfe6e3", zeroline: false },
+        showlegend: true,  // Plotly hides the legend of a single trace by default
         legend: { orientation: "h", x: 0, y: 1.16 },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       }, { responsive: true, displaylogo: false });
@@ -849,8 +858,8 @@ PAGE_TEMPLATE = r'''<!doctype html>
       }
       const layout = {
         autosize: true,
-        // Extra right margin so a long slanted label in the last slot is not clipped.
-        margin: { l: 62, r: metricTickAngle() === -90 ? 24 : 80, t: 58, b: 55 },
+        // Small right margin: xaxis.automargin widens it only as far as the last slanted label needs.
+        margin: { l: 62, r: 24, t: 58, b: 55 },
         paper_bgcolor: "#fff",
         plot_bgcolor: "#fff",
         font: { family: "Avenir Next, Avenir, Segoe UI, sans-serif", color: "#1c2928" },
@@ -864,7 +873,8 @@ PAGE_TEMPLATE = r'''<!doctype html>
             : state.compare.has(metric)
               ? `<b style="color:${metricColors.get(metric)}">${escapeHtml(metric)}</b>`
               : `<span style="color:${metricColors.get(metric)}">${escapeHtml(metric)}</span>`),
-          tickangle: metricTickAngle(),
+          tickangle: metricTickAngle(metrics.length),
+          automargin: true,  // reserve room above the plot for the slanted labels
           range: [-0.6, Math.max(0.6, metrics.length - 0.4)],
           fixedrange: true,
           gridcolor: "#edf1ef",
@@ -878,7 +888,8 @@ PAGE_TEMPLATE = r'''<!doctype html>
           gridcolor: "#dfe6e3",
           zeroline: false
         },
-        legend: { orientation: "h", x: 1, xanchor: "right", y: 1.24 },
+        // Below the plot: the metric labels above it take a height that depends on the angle.
+        legend: { orientation: "h", x: 1, xanchor: "right", y: -0.03, yanchor: "top" },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       };
       overviewMetrics = metrics;
@@ -1088,6 +1099,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
           range: [-0.6, rows.length - 0.4], fixedrange: true, gridcolor: "#edf1ef", zeroline: false
         },
         yaxis: { title: "Correlation", range: [-1, 1], dtick: 0.2, gridcolor: "#edf1ef" },
+        showlegend: true,  // also with a single series
         legend: { orientation: "h", x: 0, xanchor: "left", y: 1.35 },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       }, { responsive: true, displaylogo: false });
@@ -1175,6 +1187,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
         font: { family: "Avenir Next, Avenir, Segoe UI, sans-serif", color: "#1c2928" },
         xaxis: { title: `Objective score (${escapeHtml(displayName(metric))})`, gridcolor: "#edf1ef" },
         yaxis: { title: { text: "Mean listener score", standoff: 16 }, gridcolor: "#edf1ef" },
+        showlegend: true,  // also with a single subset / method group
         legend: narrow
           ? { orientation: "v", xref: "container", x: 0, xanchor: "left", y: -0.25, yanchor: "top" }
           : { orientation: "v", x: 1.02, xanchor: "left", y: 1, yanchor: "top" },
