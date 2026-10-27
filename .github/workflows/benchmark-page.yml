@@ -1,0 +1,36 @@
+# Publishes the benchmark website (benchmark/docs/) with GitHub Pages.
+# The site is generated locally by benchmark/evaluate.py and benchmark/build_github_page.py
+# and committed; this workflow only uploads it.
+# One-time setup: Settings > Pages > Build and deployment > Source: "GitHub Actions".
+name: Publish benchmark page
+
+on:
+  push:
+    branches: [main]
+    paths: ["benchmark/docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deployment finish; queue later ones.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: benchmark/docs
+      - id: deployment
+        uses: actions/deploy-pages@v4

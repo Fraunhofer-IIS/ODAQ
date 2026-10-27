@@ -2,7 +2,8 @@
 
 
 ## Latest News
-- 2026.01: new contribution to ODAQ is available. For a complete list of contributions, see the [Data Contributions](#data-contributions--odaq-collection) and [Result Contributions](#result-contributions) tables below.
+- 2026.10: 📊 A new interactive benchmark page is available to explore how objective metrics correlate with the quality scores in ODAQ. Check it out at: [fraunhofer-iis.github.io/ODAQ](https://fraunhofer-iis.github.io/ODAQ/)
+- 2026.10: 📦 ODAQ-Collection is available, a unified dataset containing previous subsets plus a new addition focusing on spatial distortions. Check out the accompanying paper at: TBD. For a complete list of contributions, see the [Data Contributions](#data-contributions--odaq-collection) and [Result Contributions](#result-contributions) tables below.
 
 ## Introduction
 
@@ -20,22 +21,27 @@ Key characteristics of ODAQ:
 
 ### Data Contributions — ODAQ-Collection
 
-The **ODAQ-Collection** is the unified dataset containing multiple subsets. You can download the complete collection ([Zenodo](TBD)) or individual subsets from the table below. The collection organizes subsets as subfolders named by their identifier (e.g., `2024-icassp/`, `2024-aes/`, `2025-aes/`).
+The **ODAQ-Collection** is the unified dataset containing multiple subsets. You can download the complete collection ([Zenodo](https://doi.org/10.5281/zenodo.23425817)) or individual subsets from the table below. The collection organizes subsets as subfolders named by their identifier (e.g., `2024-icassp/`, `2024-aes/`, `2025-aes/`).
 
 | Identifier | Paper | Audio | Scores | Test Type | Listeners | Notes |
 |:----------:|:------|:-----:|:------:|:---------:|:---------:|:------|
 | **Basic-set** | | | | | | |
-| [2024-icassp](https://doi.org/10.5281/zenodo.10405774) | [ODAQ: Open Dataset of Audio Quality](https://arxiv.org/abs/2401.00197) | Yes | Yes | Lab MUSHRA | Expert | Initial release; 240 samples; 6 methods (LP, PE, SH, TM, UN, DE); 26 listeners |
+| [2024-icassp](https://doi.org/10.5281/zenodo.10405774) | [ODAQ: Open Dataset of Audio Quality](https://arxiv.org/abs/2401.00197) | Yes | Yes | Lab MUSHRA | Expert | Initial release; 210 stimuli; 6 methods (LP, PE, SH, TM, UN, DE); 26 listeners |
 | [2024-aes](https://doi.org/10.5281/zenodo.13377284) | [Expanding and Analyzing ODAQ](https://arxiv.org/abs/2504.00742) | No | Yes | Lab MUSHRA | Expert | +16 trained university listeners; benchmark analysis of objective metrics |
-| [2025-aes](https://doi.org/10.5281/zenodo.17162670) | [Investigating the impact of stereo processing](https://arxiv.org/abs/2512.14259) | Yes | Yes | Lab MUSHRA | Expert | LR/MS stereo processing extension; 176 samples; 6 methods (QNLR, QNMS, QNmix, SHLR, SHMS, SHmix); 16 listeners |
+| [2025-aes](https://doi.org/10.5281/zenodo.17162670) | [Investigating the impact of stereo processing](https://arxiv.org/abs/2512.14259) | Yes | Yes | Lab MUSHRA | Expert | LR/MS stereo processing extension; 154 stimuli; 6 methods (QNLR, QNMS, QNmix, SHLR, SHMS, SHmix); 16 listeners |
+| [proposed-addition](https://doi.org/10.5281/zenodo.23425817) | ODAQ-Collection: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions | Yes | Yes | Lab MUSHRA | Expert | Stereo distortions; 84 + 64 stimuli; 2 binaural cue distortions (ICC, ILD) + DE in spatially challenging scenes; 23 + 12 listeners |
 | **Community-extension** | | | | | | |
-| [2025-lanzendorfer](https://doi.org/10.5281/zenodo.18184035) | [Evaluating Objective Speech Quality Metrics for Neural Audio Codecs](https://arxiv.org/abs/2511.19734) | Yes | Yes | Crowd-source MUSHRA | Self-reported expert | Derived from 2024-icassp speech items; two variants (speech, combined); 99 samples each; 11 / 17 listeners |
+| [2025-lanzendorfer](https://doi.org/10.5281/zenodo.18184035) | [Evaluating Objective Speech Quality Metrics for Neural Audio Codecs](https://arxiv.org/abs/2511.19734) | Yes | Yes | Crowd-source MUSHRA | Self-reported expert | Derived from 2024-icassp speech items; two variants (speech, combined); 88 stimuli each; 11 + 17 listeners |
 
-*Note: The identifiers above replace previously used version labels: `2024-icassp` was "ODAQ v1", `2024-aes` was "ODAQ v1-BSU", and `2025-aes` was "ODAQ v1.5". Going forward, we use year-based identifiers to avoid confusion.*
+*Notes:*
+- *Stimuli counts do not include the hidden references.*
+- *The identifiers above replace previously used version labels: `2024-icassp` was "ODAQ v1", `2024-aes` was "ODAQ v1-BSU", and `2025-aes` was "ODAQ v1.5". Going forward, we use year-based identifiers to avoid confusion.*
 
 ### Result Contributions
 
-We encourage all contributions from the research community, including new results and learnings derived from ODAQ. For guidance on using ODAQ for benchmarking, refer to the [benchmark](./benchmark/) subfolder for examples and considerations. We previously relied on [Papers with Code](https://paperswithcode.com/dataset/odaq-open-dataset-of-audio-quality) for sharing results, but the platform has since been deprecated. We are actively looking for alternative ways to make it easier for the community to share their results. In the meantime, we maintain the following non-exhaustive list as a best effort to track progress and contributions from the community. Please contact us if you would like us to update the list.
+We encourage all contributions from the research community, including new results and learnings derived from ODAQ. For guidance on using ODAQ for benchmarking, refer to the [benchmark](./benchmark/) subfolder for examples and considerations. We previously relied on Papers with Code for sharing results, but the platform has since been deprecated so we moved to [fraunhofer-iis.github.io/ODAQ](https://fraunhofer-iis.github.io/ODAQ/).
+We also maintain the following non-exhaustive list as a best effort to track progress and contributions from the community. 
+Please contact us or open a pull request if you would like us to update the list.
 
 | Venue/Year | Paper | Used For |
 |:----------:|:------|:--------:|

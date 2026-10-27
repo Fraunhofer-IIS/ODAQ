@@ -1,79 +1,228 @@
-# How to benchmark a metric with ODAQ?
+# ODAQ Benchmark
 
-This subfolder presents an example pipeline for benchmarking objective quality metrics using ODAQ. The experiment was described in the following paper:
+This folder contains the code to reproduce the benchmark and extend it with new
+metrics or subsets. The result is an interactive page showing how well objective audio quality metrics correlate with the ODAQ listening test scores. It's available here:
+
+<div align="center">
+
+### [📊 fraunhofer-iis.github.io/ODAQ](https://fraunhofer-iis.github.io/ODAQ/)
+
+</div>
+
+## Setup and Usage
+
+### 1. Download the ODAQ Collection
+
+First, download the ODAQ collection from [Zenodo](https://doi.org/10.5281/zenodo.23425817)
+and unpack it, so that you have the `odaq-collection` directory on your machine.
+
+### 2. Configure the Collection Path
+
+Edit [config.py](config.py) and set the `COLLECTION_ROOT` variable to point to your `odaq-collection` folder:
+
+```python
+COLLECTION_ROOT = Path("./odaq-collection")  # Update this path
 ```
-@inproceedings{Dick2024ODAQBSU,
-author = {Dick, S. and Thompson, C. and Wu, C.-W. and Torcoli, M. and Delgado, P. M. and Williams, P. A. and Habets, E. A. P.},
-year = {2024},
-month = {October},
-title = {Expanding and Analyzing {ODAQ} – the Open Dataset of Audio Quality},
-booktitle={Audio Engineering Society Convention 157}
+
+A relative path is resolved against the folder you run `evaluate.py` from, so run the
+commands below from this `benchmark/` folder or use an absolute path.
+
+You can change the list of metrics under test (see [metrics_registry.py](metrics_registry.py) for the full list of available metrics):
+
+```python
+METRICS = ["PESQc2", "SI-SDR"]  # or "ALL"
+```
+
+Metric names are case-sensitive! Set `METRICS = "ALL"` to run every registered metric.
+
+`METRICS` and `ACTIVE_SUBSETS` select the evaluation workload. The website data
+written by `evaluate.py` to `docs/analysis.json` contains the correlation analysis for every filter combination (anchors, aggregation method, ...). Hidden reference conditions are always excluded.
+
+
+### 3. Set Up the Environment and the Metrics
+
+Create a conda environment using Python 3.11 and install the shared dependencies:
+
+```bash
+conda create -n odaq python=3.11
+conda activate odaq
+pip install -r requirements.txt
+```
+
+#### How metrics are installed
+
+Every metric is independent. `METRICS` in `config.py` selects the metrics to compute;
+all other metrics with cached scores are loaded from their caches, so a run only adds
+to the existing results (see step 4). You therefore only need to install the metrics
+you want to compute. Each metric imports its packages only when it is computed, so a
+missing tool does not affect the others.
+
+`requirements.txt` installs most metrics. The others need
+[an extra manual step](#metrics-that-need-an-extra-manual-step): cloning a repository,
+installing a package without its dependencies, or building a native tool.
+
+This keeps a single environment and simple code: each metric calls its upstream
+implementation, pinned to a fixed version, instead of copies of that code, separate
+environments or subprocess wrappers. NOMAD and SMAQ are the exceptions: their small
+networks are rebuilt in this repository because their packages require outdated
+frameworks (fairseq, TensorFlow on Python 3.7).
+
+#### Metrics that need an extra manual step
+
+Clone these repositories into this `benchmark/` folder (the metrics load their code from there):
+
+```bash
+git clone https://github.com/soham97/PAM.git            # PAM
+git clone https://github.com/QxLabIreland/Binaqual.git  # BINAQUAL
+git clone https://github.com/cwu307/mtl_audio_qual.git  # SMAQ 
+```
+
+Install these packages without their dependencies, because their own version pins
+conflict with the shared environment (e.g. `protobuf<=3.20.1` for SHEET, `numpy>=2` for
+pyclarity); the dependencies they actually need are in `requirements.txt`:
+
+```bash
+pip install --no-deps sheet-sqa==0.2.5                    # SHEET
+pip install --no-deps pyclarity==0.9.0                    # HASQIv2, HASPIv2, HAAQI
+pip install --no-deps "utmosv2 @ git+https://github.com/sarulab-speech/UTMOSv2.git@v1.3.0"
+pip install --no-deps "urgent_mos @ git+https://github.com/vvwangvv/URGENT-MOS.git@79fb39277ba8989d1dea28bf109a2d1631530fbe"
+# CD, fwSNRseg (pysepm imports SRMRpy, which imports Gammatone)
+pip install --no-deps "pysepm @ git+https://github.com/schmiph2/pysepm.git@7ef88aff2c56201a2d0470aaeb58e77e47a914d2" \
+  "SRMRpy @ git+https://github.com/jfsantos/SRMRpy.git@fee009779cef96bed34db3a7e31d10f3ad1ea133" \
+  "Gammatone @ git+https://github.com/detly/gammatone.git@0626328ef7c31d3b33214db2fdcd52e8601eb4c5"
+```
+
+Build the native tools:
+
+- **ViSQOLAudio-v3**: build and install the official [ViSQOL Python API](https://github.com/google/visqol#python-api-usage)
+  following its instructions.
+- **PEAQ-ODG and NMR**: compile `PQevalAudio` from Peter Kabal's
+  [AFsp-v8r2](https://www-mmsp.ece.mcgill.ca/Documents/Downloads/AFsp/index.html) and set
+  `PQEVALAUDIO_PATH` in `config.py` to the executable.
+
+
+### 4. Evaluate
+
+Compute metric scores (reusing caches), correlations, and website data:
+
+```bash
+python evaluate.py
+```
+
+This maintains metric score caches in `scores/<metric>.csv` and exports compact
+website JSON directly to `docs/`.
+
+`METRICS` in `config.py` selects the metrics to compute. Every other registered
+metric with a cache is loaded from it and included in the results, so adding a
+new metric only requires `METRICS = ["<new metric>"]`. A cache missing scores
+for some pairs (e.g., after adding a subset) is skipped with a warning; add that
+metric to `METRICS` to complete it.
+
+Only the score caches are inputs: each run recomputes all correlations from them and
+rewrites the json files in `docs/` from scratch. Deleting `docs/` therefore
+loses nothing, while deleting `scores/<metric>.csv` means recomputing that metric.
+Old detail files are not removed: if a metric leaves the results, delete its
+`docs/data/<metric>.json` by hand.
+
+To build or update only the static HTML page:
+
+```bash
+python build_github_page.py
+```
+
+The HTML builder writes only `docs/index.html`. It does not load metric caches,
+compute correlations or rho-perfect, or modify the website JSON. Run evaluation
+when scores, listening-test data, or configured metrics/subsets change; run the
+HTML builder when the page layout changes. For a complete site, run both commands.
+
+The "About the subsets" table on the page is built from `subset_references.csv`, which
+comes with the ODAQ collection (downloaded separately, see step 1) and is read from
+`COLLECTION_ROOT`.
+
+
+## How Results Are Reported
+
+### Score direction
+
+All scores are higher-is-better. The functions in [metrics.py](metrics.py) return each
+metric's own scale; metrics where lower is better (distances, distortion measures) are
+listed in `NEGATED_METRICS` in [metrics_registry.py](metrics_registry.py), and
+`evaluate.py` negates their scores before caching them (`score_pair`). Cached scores
+and correlations therefore use the negated values. On the website these metrics
+are shown as `−Name`, e.g. `−NMR`.
+
+### Stereo input
+
+The ODAQ stimuli are stereo. Metrics that accept stereo input get it as is, and whatever they
+do with it (e.g. a downmix in their own file loader) is part of their design. Metrics that
+take mono input only are run on each channel separately, and the channel scores are averaged.
+
+### Correlation coefficients
+
+Objective scores are correlated with the mean listener scores within each subset and
+processing method (e.g. LP, TM or DE in 2024-icassp), with three coefficients:
+
+- **Pearson** r: linear relationship.
+- **Spearman** ρ: rank order.
+- **Kendall sin(πτ/2)**: Kendall's τ-b, mapped to the Pearson scale with sin(πτ/2) (Greiner's relation) so that it is comparable with the other two. 
+
+### Aggregation
+
+- **Macro** (default): Correlations computed for each subset and processing method are averaged in Fisher’s z-space, giving equal weight to every subset–method combination. This approach aims to minimize the influence of differences in how listeners use the rating scale across tests, subsets, or processing methods. See also: M. Torcoli, T. Kastner, J. Herre, "Objective Measures of Perceptual Audio Quality Reviewed: An Evaluation of Their Application Domain Dependence," IEEE/ACM Trans. Audio, Speech, Lang. Process., vol. 29, pp. 1530–1541, 2021 ([doi:10.1109/TASLP.2021.3069302](https://doi.org/10.1109/TASLP.2021.3069302)). The whiskers on the website show the mean ± one standard deviation of the per-subset, per-method z-values, transformed back. 
+- **Micro**: one correlation over all stimuli pooled together, which mixes such
+  differences between listening tests into the correlation. The whiskers on the website show approximate 95% Fisher-z intervals.
+
+## Adding a Metric
+
+1. Implement `mymetric(ref_path: str, target_path: str) -> float` in [metrics.py](metrics.py),
+   returning the metric's own scale. No-reference metrics simply ignore `ref_path`.
+2. Register it in `METRICS_REGISTRY`, add its source URL to `METRIC_SOURCES` and its
+   reference type (`full-reference`, `no-reference` or `non-matching-reference`) to
+   `METRIC_REFERENCE_TYPES` in [metrics_registry.py](metrics_registry.py).
+3. If lower is better, add it to `NEGATED_METRICS`.
+4. Add it to `METRICS` in [config.py](config.py) and run `python evaluate.py`.
+
+**Precomputed scores.** Implementing the metric as above is the preferred way: only then
+can others reproduce its scores, and the benchmark compute them for new subsets. If that
+is not possible, scores computed
+elsewhere could be added without implementing the metric: write `scores/<name>.csv`
+with one row per pair, in the format of the existing files (`target_wav`, `ref_wav` relative
+to the collection root, `score`). The scores must already be higher-is-better, because
+`NEGATED_METRICS` is only applied when scores are computed. The metric still needs step 2, with a function in `metrics.py` that raises `NotImplementedError`; do not add it to `METRICS`.
+
+
+## Adding a Subset
+
+A subset is one listening test (or a group of tests on the same stimuli):
+
+1. Add its audio and ratings to the collection: the ratings as CSV files with one row
+   per rating. Example: `2024-icassp/ODAQ_listening_test/` in the collection, with
+   `ODAQ_results.csv` (columns `score`, `method`, `condition`, `process`, `item`,
+   `subject`) and one folder per trial (`item`) holding `reference.wav` and one
+   `<process>.wav` per condition; its loader is `ICASSP2024Loader`.
+2. Write a loader in [dataloaders.py](dataloaders.py) by subclassing `ODAQSubsetLoader`:
+   `subjective_csvs()` returns the ratings files, `pairs()` the (target, reference) WAV
+   pairs with their item, condition and method group.
+3. Register it in `LOADER_REGISTRY` in [dataloaders_registry.py](dataloaders_registry.py)
+   and add its key to `ACTIVE_SUBSETS` in [config.py](config.py).
+4. Add one row per item to the collection's `odaq-collection-content-analysis.csv`
+   (`subset` = the registry key, `item`, `content_type`, and `spatial` = `mono` or
+   `stereo`, the same for the whole subset); `evaluate.py` stops with an error otherwise.
+5. Add a row to the collection's `subset_references.csv` (`subset`, `summary`,
+   `reference`, optional `url`) for the "About the subsets" table on the website.
+6. Set `METRICS = "ALL"` (or list the metrics to include) and run `python evaluate.py`.
+7. Consider contacting the ODAQ authors to include the subset in the next release of the
+   ODAQ-Collection.
+
+## Citing
+
+If you use this benchmark, please cite:
+
+```bibtex
+@article{wu2026odaqcollection,
+  title   = {{ODAQ-Collection}: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions},
+  author  = {Wu, Chih-Wei and Torcoli, Matteo and Halimeh, Mhd Modar and Delgado, Pablo M. and Dick, Sascha and Thompson, Christoph and Williams, Phillip A. and Habets, Emanu{\"e}l A. P.},
+  journal = {arXiv preprint},
+  year    = {2026}
 }
 ```
-
-## Instruction
-
-Here are the steps to evaluate your metric using the original ODAQ set (`2024-icassp`) [1]. The scripts were developed and tested in Python 3.10.
-
-> **Note on naming**: The ODAQ subsets were previously referred to by version numbers (e.g., "ODAQ v1", "ODAQ v1-BSU", "ODAQ v1.5"). We have since adopted year-based identifiers (`2024-icassp`, `2024-aes`, `2025-aes`). See the [main README](../README.md#data-contributions--odaq-collection) for the full mapping.
-
-1) Implement a wrapper function in `BringYourOwnMetric.py`. This function would take the filepaths of reference and target (i.e. system under test, sut) signals and return one objective score
-2) Import your function in `ProcessAndAnalyzeODAQScores.py` and insert your function inside `call_metric()`
-3) In `config.py`, make sure the `audio_folder` is set to where your `ODAQ/ODAQ_listening_test/` resides. The ODAQ package can be downloaded [here](https://doi.org/10.5281/zenodo.10405774)  
-4) In `config.py`, make sure the `LT_results_folders` is set to where your data resides. Note that you could include the results from [1] and [2] by providing a list. See `config.py` for more details.
-5) Make sure all the dependencies are installed (see `requirements.txt`) and run the following commands:
-```
->> Python ProcessAndAnalyzeODAQScores.py
-```
-6) The results will be stored in the `output_dir` specified in `config.py`
-
-
-## Current Results (Latest update: 2024.09)
-
-An initial set of results was presented in [2]. Here, we present a similar table that tracks the latest results. 
-
-A few notes:
-* The performance metric is the absolute Pearson's linear correlation between ground-truth subjective scores and outputs from the objective metrics.
-* Hidden reference and anchor conditions are excluded. 
-* The aggregated score (AGG) is the mean of the per-method correlation coefficients, averaged in the Fisher’s Z-transform domain, as explained in [2], and implemented in the code in this repo.
-* We expect this table to evolve as new approaches are introduced to the research field, and we welcome any contribution from the community. 
-
-
-As ground-truth subjective scores, we pool together the results from [2024-icassp](https://doi.org/10.5281/zenodo.10405774) and [2024-aes](https://zenodo.org/records/13377284).
-
-| Objective Quality Metric |  DE  |  LP  |  PE  |  SH  |  TM  |  UN  | AGG (aggregated) | Contribution Date | Source/Publication/Reference where the evaluation appeared |
-|:------------------------:|:----:|:----:|:----:|:----:|:----:|:----:|:----------------:|:-----------------:|:-----------------------------------------------------------:|
-|        NMR [3, 7]        | 0.90 | 0.90 | 0.93 | 0.83 | 0.79 | 0.94 |       0.89       |      2024.09      |                             [2]                             | 
-|       PEAQ-CSM [4]       | 0.87 | 0.97 | 0.94 | 0.86 | 0.84 | 0.72 |       0.89       |      2024.09      |                             [2]                             | 
-|     2f-model [5, 7]      | 0.64 | 0.96 | 0.95 | 0.94 | 0.69 | 0.73 |       0.87       |      2024.09      |                             [2]                             |
-|    PEAQ (ODG) [6, 7]     | 0.71 | 0.95 | 0.90 | 0.80 | 0.76 | 0.95 |       0.87       |      2024.09      |                             [2]                             |
-|    ViSQOLAudio V3 [8]    | 0.73 | 0.89 | 0.86 | 0.61 | 0.62 | 0.78 |       0.77       |      2024.09      |                             [2]                             |
-|         SMAQ [9]         | 0.51 | 0.84 | 0.75 | 0.85 | 0.56 | 0.89 |       0.77       |      2024.09      |                             [2]                             |
-|      PESQ [10, 11]       | 0.79 | 0.65 | 0.79 | 0.80 | 0.55 | 0.77 |       0.74       |      2024.09      |                             Can be reproduced by the code in this repo                             |
-|       SI-SDR [12]        | 0.14 | 0.72 | 0.57 | 0.53 | 0.52 | 0.00 |       0.44       |      2024.09      |                             Can be reproduced by the code in this repo                             |
-|       DNSMOS [13]        | 0.35 | 0.19 | 0.65 | 0.47 | 0.22 | 0.33 |       0.38       |      2024.09      |                             [2]                             |
-
-
-## Further References
-
-```
-[1] Torcoli, M., Wu, C.-W., Dick, S., Williams, P. A., Halimeh, M. M., Wolcott, W., & Habets, E. A. P. (2023). ODAQ: OPEN DATASET OF AUDIO QUALITY [Data set]. Zenodo. https://doi.org/10.5281/zenodo.10405774
-[2] Dick, S., Thompson, C., Wu, C.-W., Torcoli, M., Delgado, P., Williams, P. A., & Habets, E. A. P. (2024). ODAQ v1: Additional Results from Ball State University (BSU) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.13377284
-[3] Brandenburg, K. "Evaluation of Quality for Audio Encoding at Low Bit Rates," in Audio Eng. Soc. (AES) Conv. 82, 1987.
-[4] Delgado, P. M. and Herre, J., “A data-Driven Cognitive Salience Model for Objective Perceptual Audio Quality Assessment,” in IEEE Int. Conf. Acoustics, Speech and Sig. Proc. (ICASSP), pp. 986–990, 2022.
-[5] Kastner, T. and Herre, J., “An Efficient Model for Estimating Subjective Quality of Separated Audio Source Signals,” in IEEE Workshop on Applications of Sig. Proc. to Audio and Acoustics (WASPAA), 2019, implementation details: https://www.audiolabs-erlangen.de/resources/2019-WASPAA-SEBASS.
-[6] ITU-R Rec. BS.1387-2, “Method for Objective Measurements of Perceived Audio Quality,” Int. Telecom. Union (ITU), Radiocommunication Sector, 2023.
-[7] Kabal, P., “An Examination and Interpretation of ITU-R BS.1387: Perceptual Evaluation of Audio Quality,” Technical report, MMSP Lab Technical Report, McGill University, 2002, code available at http://www-mmsp.ece.mcgill.ca/Documents/Software/.
-[8] Chinen, M., Lim, F. S. C., et al., “ViSQOL v3: An Open Source Production Ready Objective Speech and Audio Metric,” in Int. Conf. on Quality of Multimedia Experience (QoMEX), 2020, code available at https://github.com/google/visqol.
-[9] Wu, C.-W., Williams, P. A., and Wolcott, W., “A Multitask Teacher-Student Framework for Perceptual Audio Quality Assessment,” in European Sig. Proc. Conf. (EUSIPCO), pp. 396–400, 2021.
-[10] ITU-R Rec. P.862.2, “Wideband Extension to Recommendation P.862 for the Assessment of Wideband Telephone Networks and Speech Codecs,” Int. Telecom. Union (ITU), Radiocommunication Sector, 2007.
-[11] Wang, M., Boeddeker, C., et al., “PESQ (Perceptual Evaluation of Speech Quality) Wrapper for Python Users,” 2022, code available at https://doi.org/10.5281/zenodo.6549559 and https://github.com/ludlows/PESQ.
-[12] Le Roux, J., Wisdom, S., et al., “SDR – Half-Baked or Well Done?” in IEEE Int. Conf. Acoustics, Speech and Sig. Proc. (ICASSP), pp. 626–630, 2019, code for mono signals available at: https://github.com/sigsep/bsseval/issues/3.
-[13] Reddy, C. K., Gopal, V., and Cutler, R., “DNS-MOS P.835: A Non-Intrusive Perceptual Objective Speech Quality Metric to Evaluate Noise Suppressors,” in IEEE Int. Conf. Acoustics, Speech and Sig. Proc. (ICASSP), pp. 886–890, 2022, code available at: https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS.
-```
-
-
-
-
-
-
