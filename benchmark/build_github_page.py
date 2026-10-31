@@ -384,7 +384,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
     <div>
       <p class="eyebrow">ODAQ / Benchmark</p>
       <h1>Metric correlation</h1>
-      <p class="subtitle">Objective metrics against listener ratings from the MUSHRA experiments in the ODAQ collection · <a href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener">What's ODAQ?</a></p>
+      <p class="subtitle">Objective metrics against listener ratings from the MUSHRA experiments in the ODAQ collection · <a href="https://arxiv.org/abs/2610.37959" target="_blank" rel="noopener">What's ODAQ?</a></p>
     </div>
     <div class="header-actions">
       <a class="repo-link" href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener" aria-label="View ODAQ on GitHub">
@@ -1189,7 +1189,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
         yaxis: { title: { text: "Mean listener score", standoff: 16 }, gridcolor: "#edf1ef" },
         showlegend: true,  // also with a single subset / method group
         legend: narrow
-          ? { orientation: "v", xref: "container", x: 0, xanchor: "left", y: -0.25, yanchor: "top" }
+          ? { orientation: "v", x: 0, xanchor: "left", y: -0.25, yanchor: "top" }
           : { orientation: "v", x: 1.02, xanchor: "left", y: 1, yanchor: "top" },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       }, { responsive: true, displaylogo: false });

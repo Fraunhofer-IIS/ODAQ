@@ -222,7 +222,8 @@ If you use this benchmark, please cite:
 @article{wu2026odaqcollection,
   title   = {{ODAQ-Collection}: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions},
   author  = {Wu, Chih-Wei and Torcoli, Matteo and Halimeh, Mhd Modar and Delgado, Pablo M. and Dick, Sascha and Thompson, Christoph and Williams, Phillip A. and Habets, Emanu{\"e}l A. P.},
-  journal = {arXiv preprint},
+  journal = {arXiv preprint arXiv:2610.37959},
+  url     = {https://arxiv.org/abs/2610.37959},
   year    = {2026}
 }
 ```

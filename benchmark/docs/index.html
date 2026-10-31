@@ -366,7 +366,7 @@
     <div>
       <p class="eyebrow">ODAQ / Benchmark</p>
       <h1>Metric correlation</h1>
-      <p class="subtitle">Objective metrics against listener ratings from the MUSHRA experiments in the ODAQ collection · <a href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener">What's ODAQ?</a></p>
+      <p class="subtitle">Objective metrics against listener ratings from the MUSHRA experiments in the ODAQ collection · <a href="https://arxiv.org/abs/2610.37959" target="_blank" rel="noopener">What's ODAQ?</a></p>
     </div>
     <div class="header-actions">
       <a class="repo-link" href="https://github.com/Fraunhofer-IIS/ODAQ" target="_blank" rel="noopener" aria-label="View ODAQ on GitHub">
@@ -496,7 +496,7 @@
               <tr><td>2024-aes</td><td>Mono focus: The same 2024-icassp stimuli rated again in a MUSHRA in a third lab with 16 trained university students (two cohorts with different training), consistent with the expert ratings.</td><td><p>S. Dick; C. Thompson; et al.; &quot;Expanding and analyzing ODAQ - the open dataset of audio quality;&quot; AES Convention; 2024. (<a href="https://arxiv.org/abs/2504.00742" target="_blank" rel="noopener">arXiv:2504.00742</a>)</p></td></tr>
               <tr><td>2025-aes</td><td>Stereo focus: Solo instruments, pop and R&amp;B mixes with a wide stereo image, and hard-panned speech with music. Stereo coding artifacts, namely quantization noise (QN) and spectral holes (SH), applied in left/right (LR), mid/side (MS), or both within one trial (mix), giving SHLR, SHMS, SHmix, QNLR, QNMS, and QNmix. MUSHRA with 16 trained music-production students, plus 8 experts for extra hard-panned items (not included in the benchmark).</td><td><p>S. Dick; C. Thompson; et al.; &quot;Investigating the impact of stereo processing - a study for extending the Open Dataset of Audio Quality (ODAQ);&quot; AES Convention; 2025. (<a href="https://arxiv.org/abs/2512.14259" target="_blank" rel="noopener">arXiv:2512.14259</a>)</p></td></tr>
               <tr><td>2025-lanzendorfer</td><td>Mono focus, neural speech codecs: Speech (panned to the center) from 2024-icassp, clean and with background, reconstructed by six neural codecs at 2.6-7.7 kbps (each channel separately). MUSHRA-like crowdsourced online test.</td><td><p>L. A. Lanzendoerfer; F. Groetschla; &quot;Evaluating objective speech quality metrics for neural audio codecs;&quot; arXiv preprint; 2025. (<a href="https://arxiv.org/abs/2511.19734" target="_blank" rel="noopener">arXiv:2511.19734</a>)</p></td></tr>
-              <tr><td>proposed-addition</td><td>Stereo focus: Altered inter-channel coherence (ICC) and level differences (ILD) on speech, music and solo instruments, plus dialogue enhancement of spatial speech with music and effects. MUSHRA in a lab with trained students (23 and 12 listeners).</td><td><p>C.-W. Wu; M. Torcoli; et al.; &quot;ODAQ-Collection: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions;&quot; arXiv preprint; 2026.</p></td></tr>
+              <tr><td>proposed-addition</td><td>Stereo focus: Altered inter-channel coherence (ICC) and level differences (ILD) on speech, music and solo instruments, plus dialogue enhancement of spatial speech with music and effects. MUSHRA in a lab with trained students (23 and 12 listeners).</td><td><p>C.-W. Wu; M. Torcoli; et al.; &quot;ODAQ-Collection: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions;&quot; arXiv preprint; 2026. (<a href="https://arxiv.org/abs/2610.37959" target="_blank" rel="noopener">arXiv:2610.37959</a>)</p></td></tr>
             </tbody>
           </table>
         </div>
@@ -1175,7 +1175,7 @@
         yaxis: { title: { text: "Mean listener score", standoff: 16 }, gridcolor: "#edf1ef" },
         showlegend: true,  // also with a single subset / method group
         legend: narrow
-          ? { orientation: "v", xref: "container", x: 0, xanchor: "left", y: -0.25, yanchor: "top" }
+          ? { orientation: "v", x: 0, xanchor: "left", y: -0.25, yanchor: "top" }
           : { orientation: "v", x: 1.02, xanchor: "left", y: 1, yanchor: "top" },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       }, { responsive: true, displaylogo: false });

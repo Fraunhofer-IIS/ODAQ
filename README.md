@@ -3,7 +3,7 @@
 
 ## Latest News
 - 2026.10: 📊 A new interactive benchmark page is available to explore how objective metrics correlate with the quality scores in ODAQ. Check it out at: [fraunhofer-iis.github.io/ODAQ](https://fraunhofer-iis.github.io/ODAQ/)
-- 2026.10: 📦 ODAQ-Collection is available, a unified dataset containing previous subsets plus a new addition focusing on spatial distortions. Check out the accompanying paper at: TBD. For a complete list of contributions, see the [Data Contributions](#data-contributions--odaq-collection) and [Result Contributions](#result-contributions) tables below.
+- 2026.10: 📦 ODAQ-Collection is available, a unified dataset containing previous subsets plus a new addition focusing on spatial distortions. Check out the accompanying paper: [arXiv:2610.37959](https://arxiv.org/abs/2610.37959). For a complete list of contributions, see the [Data Contributions](#data-contributions--odaq-collection) and [Result Contributions](#result-contributions) tables below.
 
 ## Introduction
 
@@ -29,7 +29,7 @@ The **ODAQ-Collection** is the unified dataset containing multiple subsets. You 
 | [2024-icassp](https://doi.org/10.5281/zenodo.10405774) | [ODAQ: Open Dataset of Audio Quality](https://arxiv.org/abs/2401.00197) | Yes | Yes | Lab MUSHRA | Expert | Initial release; 210 stimuli; 6 methods (LP, PE, SH, TM, UN, DE); 26 listeners |
 | [2024-aes](https://doi.org/10.5281/zenodo.13377284) | [Expanding and Analyzing ODAQ](https://arxiv.org/abs/2504.00742) | No | Yes | Lab MUSHRA | Expert | +16 trained university listeners; benchmark analysis of objective metrics |
 | [2025-aes](https://doi.org/10.5281/zenodo.17162670) | [Investigating the impact of stereo processing](https://arxiv.org/abs/2512.14259) | Yes | Yes | Lab MUSHRA | Expert | LR/MS stereo processing extension; 154 stimuli; 6 methods (QNLR, QNMS, QNmix, SHLR, SHMS, SHmix); 16 listeners |
-| [proposed-addition](https://doi.org/10.5281/zenodo.23425817) | ODAQ-Collection: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions | Yes | Yes | Lab MUSHRA | Expert | Stereo distortions; 84 + 64 stimuli; 2 binaural cue distortions (ICC, ILD) + DE in spatially challenging scenes; 23 + 12 listeners |
+| [proposed-addition](https://doi.org/10.5281/zenodo.23425817) | [ODAQ-Collection: Expanding the Open Dataset of Audio Quality with a Focus on Spatial Distortions](https://arxiv.org/abs/2610.37959) | Yes | Yes | Lab MUSHRA | Expert | Stereo distortions; 84 + 64 stimuli; 2 binaural cue distortions (ICC, ILD) + DE in spatially challenging scenes; 23 + 12 listeners |
 | **Community-extension** | | | | | | |
 | [2025-lanzendorfer](https://doi.org/10.5281/zenodo.18184035) | [Evaluating Objective Speech Quality Metrics for Neural Audio Codecs](https://arxiv.org/abs/2511.19734) | Yes | Yes | Crowd-source MUSHRA | Self-reported expert | Derived from 2024-icassp speech items; two variants (speech, combined); 88 stimuli each; 11 + 17 listeners |
 
