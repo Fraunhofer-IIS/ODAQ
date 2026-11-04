@@ -36,3 +36,6 @@ transformers>=4.30.0,<5
 huggingface-hub>=0.20.0,<1.0
 soundfile  # binaqual
 opencv-python  # binaqual
+deepmark-anni==0.1.0  # anni-dmed, anni-dpeak
+zimtohrli==0.2.1.post1  # zimtohrli
+# spauq-srr: install with --no-deps --ignore-requires-python (it declares Python <3.11; its runtime dependencies are listed above): pip install --no-deps --ignore-requires-python "spauq @ git+https://github.com/kwatcharasupat/spauq.git@c81ec265f4a27ec98690cc3c78e2f97355fed19b"

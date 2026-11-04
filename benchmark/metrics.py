@@ -48,7 +48,10 @@ Available metrics:
   dnsmos_p808 — DNSMOS P.808 speech quality (MOS 1-5), no reference, 16 kHz, mean over channels
   hasqiv2, haspiv2, haaqi — Clarity HASQI v2 / HASPI v2 / HAAQI v1, normal-hearing audiogram, mean over channels
   smaq        — SMAQ multitask teacher-student MOS (1-5), 48 kHz mono
-  binaqual    — Binaural audio quality assessment (higher is better)"""
+  binaqual    — Binaural audio quality assessment (higher is better)
+  anni_dmed, anni_dpeak — ANNI auditory-nerve noticeability, median / peak over 200 ms windows (d', lower is better), mean over channels
+  zimtohrli   — Zimtohrli MOS (1-5) from its psychoacoustic distance, 48 kHz, mean over channels
+  spauq_srr   — SPAUQ signal-to-residual distortion ratio (dB), native sample rate, stereo"""
 
 import contextlib
 import io
@@ -1203,3 +1206,94 @@ def binaqual(ref_path: str, target_path: str) -> float:
             ignore_freq_bands=0
         )
     return float(score)
+
+
+# ---------------------------------------------------------------------------
+# anni_dmed, anni_dpeak
+# ---------------------------------------------------------------------------
+
+_anni_model = None
+
+def _get_anni_model():
+    """Lazy-load ANNI with its default playback level (65 dB SPL for the reference)."""
+    global _anni_model
+    if _anni_model is None:
+        import torch
+        from anni import ANNI
+        _anni_model = ANNI(device="cuda" if torch.cuda.is_available() else "cpu")
+    return _anni_model
+
+
+@lru_cache(maxsize=None)
+def _anni(ref_path: str, target_path: str) -> tuple[float, float]:
+    """ANNI D_med and D_peak, mean over channels, cached so the two metrics share one computation.
+
+    ANNI takes mono input only. Both signals are loaded at their native rate and trimmed to the
+    shorter one; ANNI resamples to 44.1 kHz itself (its warning about that is silenced) and
+    removes a constant delay of up to 10 ms. Its other warnings (alignment, weak correlation,
+    DC offset) are re-issued with the target file and channel they refer to.
+    """
+    import warnings
+
+    model = _get_anni_model()
+    ref, sr = librosa.load(ref_path, sr=None, mono=False)
+    deg, _ = librosa.load(target_path, sr=sr, mono=False)
+    ref, deg = np.atleast_2d(ref), np.atleast_2d(deg)
+    min_len = min(ref.shape[1], deg.shape[1])
+    scores = []
+    for channel in range(ref.shape[0]):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            d = model(ref[channel, :min_len], deg[channel, :min_len], sr)
+        for warning in caught:
+            if not str(warning.message).startswith("resampling from"):
+                warnings.warn(f"ANNI, {target_path} (channel {channel}): {warning.message}",
+                              warning.category, stacklevel=2)
+        scores.append((d["D_med"], d["D_peak"]))
+    d_med, d_peak = np.mean(scores, axis=0)
+    return float(d_med), float(d_peak)
+
+
+def anni_dmed(ref_path: str, target_path: str) -> float:
+    """ANNI D_med: median noticeability over 200 ms windows (d', 0 = no difference, lower is
+    better), 44.1 kHz, mean over channels."""
+    return _anni(ref_path, target_path)[0]
+
+
+def anni_dpeak(ref_path: str, target_path: str) -> float:
+    """ANNI D_peak: noticeability of the most noticeable 200 ms window (d', 0 = no difference,
+    lower is better), 44.1 kHz, mean over channels."""
+    return _anni(ref_path, target_path)[1]
+
+
+# ---------------------------------------------------------------------------
+# zimtohrli
+# ---------------------------------------------------------------------------
+
+def zimtohrli(ref_path: str, target_path: str) -> float:
+    """Zimtohrli MOS (1-5, higher is better), 48 kHz, mean over channels.
+
+    Zimtohrli takes mono 48 kHz input only. mos_from_signals maps the Zimtohrli distance
+    (0 = identical) to a MOS with a decreasing sigmoid, so the rank correlations equal those
+    of the distance.
+    """
+    from zimtohrli import mos_from_signals
+    return _mean_over_channels(
+        ref_path, target_path, lambda ref, deg, sr: mos_from_signals(ref, deg), 48000)
+
+
+# ---------------------------------------------------------------------------
+# spauq_srr
+# ---------------------------------------------------------------------------
+
+def spauq_srr(ref_path: str, target_path: str) -> float:
+    """SPAUQ signal-to-residual distortion ratio (dB, higher is better), native sample rate, stereo.
+
+    The non-spatial part of the distortion: the target is projected onto shifted and scaled
+    copies of the reference channels, and SRR compares that projection with the rest. Purely
+    spatial changes (e.g. a mono downmix) leave it at its 80 dB cap. Median over frames.
+    """
+    from spauq.core.metrics import spauq_eval
+    ref, sr = librosa.load(ref_path, sr=None, mono=False)
+    deg, _ = librosa.load(target_path, sr=sr, mono=False)
+    return float(spauq_eval(ref, deg, sr)["SRR"])  # trims to the shorter signal itself

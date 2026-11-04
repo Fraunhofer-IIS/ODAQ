@@ -55,6 +55,10 @@ METRICS_REGISTRY = {
     "HAAQI": haaqi,
     "SMAQ": smaq,
     "BINAQUAL": binaqual,
+    "ANNI-Dmed": anni_dmed,
+    "ANNI-Dpeak": anni_dpeak,
+    "Zimtohrli": zimtohrli,
+    "SPAUQ-SRR": spauq_srr,
 }
 
 # Lower-is-better metrics: evaluate.py negates their scores so that all scores are
@@ -69,6 +73,8 @@ NEGATED_METRICS = {
     "CLAP-FAD",
     "SCOREQ_ref",
     "NOMAD",
+    "ANNI-Dmed",
+    "ANNI-Dpeak",
 }
 
 # ---------------------------------------------------------------------------
@@ -115,6 +121,10 @@ METRIC_REFERENCE_TYPES = {
     "HAAQI": "full-reference",
     "SMAQ": "full-reference",
     "BINAQUAL": "full-reference",
+    "ANNI-Dmed": "full-reference",
+    "ANNI-Dpeak": "full-reference",
+    "Zimtohrli": "full-reference",
+    "SPAUQ-SRR": "full-reference",
 }
 
 # ---------------------------------------------------------------------------
@@ -157,6 +167,10 @@ METRIC_SOURCES = {
     "HAAQI": "https://github.com/claritychallenge/clarity",
     "SMAQ": "https://github.com/cwu307/mtl_audio_qual",
     "BINAQUAL": "https://github.com/QxLabIreland/Binaqual",
+    "ANNI-Dmed": "https://github.com/deepmark/anni",
+    "ANNI-Dpeak": "https://github.com/deepmark/anni",
+    "Zimtohrli": "https://github.com/google/zimtohrli",
+    "SPAUQ-SRR": "https://github.com/kwatcharasupat/spauq",
     "rho-perfect": "https://github.com/fcumlin/rho-perfect",
 }
 
