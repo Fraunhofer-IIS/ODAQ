@@ -15,6 +15,7 @@ METRICS = [
     "ESTOI", "ViSQOLAudio-v3", "CLAP-FAD", "SCOREQ_nr", "SCOREQ_ref", "PAM", "SHEET-SSL-MOS", "UTMOSv2", "NOMAD",
     "SQUIM_STOI", "SQUIM_PESQ", "SQUIM_SI-SDR", "SQUIM_MOS", "URGENT-MOS", "URGENT-CMOS",
     "ITU-T-P.566", "DNSMOS-P835-OVRL", "DNSMOS-P808", "HASQIv2", "HASPIv2", "HAAQI", "SMAQ", "BINAQUAL",
+    "ANNI-Dmed", "ANNI-Dpeak", "Zimtohrli", "SPAUQ-SRR",
 ]
 
 # ---------------------------------------------------------------------------

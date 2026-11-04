@@ -1103,6 +1103,19 @@ PAGE_TEMPLATE = r'''<!doctype html>
         legend: { orientation: "h", x: 0, xanchor: "left", y: 1.35 },
         hoverlabel: { bgcolor: "#1c2928", font: { color: "#fff" } }
       }, { responsive: true, displaylogo: false });
+      if (!methodChart.dataset.listening) {
+        // A click on a group shows only that group in the stimulus-level scores, as if the
+        // others were switched off in its legend (which also updates the correlation line).
+        methodChart.on("plotly_click", event => {
+          if (pairChart.hidden) return;
+          const name = `${event.points[0].customdata[0]} / ${event.points[0].customdata[1]}`;
+          Plotly.restyle(pairChart, { visible: pairChart.data.map(trace => trace.name === name || "legendonly") });
+          const section = document.getElementById("pairs-section");
+          if (section.classList.contains("collapsed")) section.querySelector(".collapse-toggle").click();
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        methodChart.dataset.listening = "true";
+      }
     }
 
     // Per-group correlations of a metric for the current filters ([] until its detail file is loaded).

@@ -90,6 +90,8 @@ pip install --no-deps "urgent_mos @ git+https://github.com/vvwangvv/URGENT-MOS.g
 pip install --no-deps "pysepm @ git+https://github.com/schmiph2/pysepm.git@7ef88aff2c56201a2d0470aaeb58e77e47a914d2" \
   "SRMRpy @ git+https://github.com/jfsantos/SRMRpy.git@fee009779cef96bed34db3a7e31d10f3ad1ea133" \
   "Gammatone @ git+https://github.com/detly/gammatone.git@0626328ef7c31d3b33214db2fdcd52e8601eb4c5"
+# SPAUQ-SRR (declares Python <3.11, but works with 3.11)
+pip install --no-deps --ignore-requires-python "spauq @ git+https://github.com/kwatcharasupat/spauq.git@c81ec265f4a27ec98690cc3c78e2f97355fed19b"
 ```
 
 Build the native tools:
