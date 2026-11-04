@@ -176,10 +176,12 @@ PAGE_TEMPLATE = r'''<!doctype html>
     .overview-tools {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
+      align-items: start;
       gap: 8px 14px;
       margin: 0 0 8px;
     }
+    .overview-tools .control { gap: 4px; }
+    #sort-name { display: inline-block; min-width: 4.8em; }  /* no layout shift when cycling */
     .overview-tools .section-note { flex-basis: 100%; margin: 0; }  /* always on its own line */
     .segments.compact { width: auto; padding: 2px; }
     .segments.compact button { min-height: 26px; padding: 0 10px; font-size: 13px; white-space: nowrap; }
@@ -450,20 +452,29 @@ PAGE_TEMPLATE = r'''<!doctype html>
           <span id="overview-status" class="status"></span>
         </div>
         <div class="overview-tools">
-          <div class="segments compact" data-control="shownMetrics" role="group" aria-label="Metrics shown">
-            <button type="button" data-value="all" aria-describedby="shown-all-tooltip" aria-pressed="true">All Metrics<span class="option-tooltip" id="shown-all-tooltip" role="tooltip">Show all metrics.</span></button>
-            <button type="button" data-value="top10" aria-describedby="shown-top10-tooltip" aria-pressed="false">Top 10<span class="option-tooltip" id="shown-top10-tooltip" role="tooltip">Show the ten metrics with the highest correlation in the sorted series, for the current filters.</span></button>
-            <button type="button" data-value="selected" aria-describedby="shown-selected-tooltip" aria-pressed="false">Selected<span class="option-tooltip" id="shown-selected-tooltip" role="tooltip">Show only the selected metrics.</span></button>
+          <div class="control">
+            <span class="control-label">Show</span>
+            <div class="segments compact" data-control="shownMetrics" role="group" aria-label="Metrics shown">
+              <button type="button" data-value="all" aria-describedby="shown-all-tooltip" aria-pressed="true">All Metrics<span class="option-tooltip" id="shown-all-tooltip" role="tooltip">Show all metrics.</span></button>
+              <button type="button" data-value="top10" aria-describedby="shown-top10-tooltip" aria-pressed="false">Top 10<span class="option-tooltip" id="shown-top10-tooltip" role="tooltip">Show the ten metrics with the highest correlation in the sorted series, for the current filters.</span></button>
+              <button type="button" data-value="selected" aria-describedby="shown-selected-tooltip" aria-pressed="false">Selected<span class="option-tooltip" id="shown-selected-tooltip" role="tooltip">Show only the selected metrics.</span></button>
+            </div>
           </div>
-          <div class="segments compact" data-control="metricOrder" role="group" aria-label="Metric order">
-            <button type="button" data-value="score" aria-describedby="order-sorted-tooltip" aria-pressed="true">Sorted<span class="option-tooltip" id="order-sorted-tooltip" role="tooltip">Sort by correlation.</span></button>
-            <button type="button" data-value="locked" aria-describedby="order-locked-tooltip" aria-pressed="false">Locked<span class="option-tooltip" id="order-locked-tooltip" role="tooltip">Keep the current order when filters change.</span></button>
+          <div class="control">
+            <span class="control-label">Sort by</span>
+            <div class="segments compact" data-control="metricOrder" role="group" aria-label="Metric order">
+              <button type="button" data-value="sort" aria-describedby="order-sort-tooltip" aria-pressed="true"><span id="sort-name">Pearson</span> <span aria-hidden="true">↻</span><span class="option-tooltip" id="order-sort-tooltip" role="tooltip">Sort by this correlation; click again to switch to the next one shown in the legend (Pearson, Spearman, Kendall sin(πτ/2)).</span></button>
+              <button type="button" data-value="locked" aria-describedby="order-locked-tooltip" aria-pressed="false">Locked<span class="option-tooltip" id="order-locked-tooltip" role="tooltip">Keep the current order when filters change.</span></button>
+            </div>
           </div>
-          <div class="compare">
-            <input id="compare-input" list="compare-options" placeholder="Select metrics…" aria-label="Select a metric to highlight" aria-describedby="compare-tooltip">
-            <span class="option-tooltip" id="compare-tooltip" role="tooltip">Type a metric name and press Enter to highlight it; the other metrics are dimmed.</span>
-            <datalist id="compare-options"></datalist>
-            <div id="compare-chips" class="compare-chips"></div>
+          <div class="control">
+            <span class="control-label">Highlight</span>
+            <div class="compare">
+              <input id="compare-input" list="compare-options" placeholder="Select metrics…" aria-label="Select a metric to highlight" aria-describedby="compare-tooltip">
+              <span class="option-tooltip" id="compare-tooltip" role="tooltip">Type a metric name and press Enter to highlight it; the other metrics are dimmed.</span>
+              <datalist id="compare-options"></datalist>
+              <div id="compare-chips" class="compare-chips"></div>
+            </div>
           </div>
           <p class="section-note">Click on the metrics for the detailed view. Legends are clickable, too!</p>
         </div>
@@ -530,8 +541,9 @@ PAGE_TEMPLATE = r'''<!doctype html>
       // Metrics selected for comparison: highlighted, all others dimmed (or hidden with "Selected").
       compare: new Set(),
       hiddenSeries: new Set(), shownMetrics: "all",
-      // "locked" keeps lockedOrder, the order shown when it was chosen, across filter changes.
-      metricOrder: "score", lockedOrder: null
+      // metricOrder "sort" orders by the correlation sortKey; "locked" keeps lockedOrder, the
+      // order shown when it was chosen, across filter changes.
+      metricOrder: "sort", sortKey: "pearson", lockedOrder: null
     };
     const chart = document.getElementById("overview-chart");
     const meanScoreHistogram = document.getElementById("mean-score-histogram");
@@ -769,6 +781,17 @@ PAGE_TEMPLATE = r'''<!doctype html>
       }
     }
 
+    // The correlation key `offset` steps after `key` (0: `key` itself) whose series is shown in the
+    // legend, so that the overview is never sorted by a hidden series; `key` if none is shown.
+    function shownSortKey(key, offset) {
+      const keys = Object.keys(correlationNames);
+      for (let step = offset; step < offset + keys.length; step++) {
+        const next = keys[(keys.indexOf(key) + step) % keys.length];
+        if (!state.hiddenSeries.has(correlationNames[next])) return next;
+      }
+      return key;
+    }
+
     function updateOverview() {
       const rows = selectedAggregates();
       const byMetric = new Map(rows.map(row => [row.metric, row]));
@@ -777,9 +800,11 @@ PAGE_TEMPLATE = r'''<!doctype html>
           { key: "spearman", errorPlus: "spearman_error_plus", errorMinus: "spearman_error_minus", name: correlationNames.spearman, marker: "square", offset: 0, color: "#df7624" },
           { key: "kendall", errorPlus: "kendall_error_plus", errorMinus: "kendall_error_minus", name: correlationNames.kendall, marker: "diamond", offset: 0.2, color: "#087f78" }
       ];
-      // Order by the first series still shown in the legend (Pearson by default).
+      // Order by the chosen correlation; if its series is hidden in the legend, by the next shown one.
+      state.sortKey = shownSortKey(state.sortKey, 0);
+      document.getElementById("sort-name").textContent = correlationNames[state.sortKey].split(" ")[0];
       const shownSeries = series.filter(item => !state.hiddenSeries.has(item.name));
-      const sortSeries = shownSeries[0] ?? series[0];
+      const sortSeries = series.find(item => item.key === state.sortKey);
       // Skip metrics with no value in any shown series (e.g. rho-perfect has Pearson only).
       const rankedMetrics = DATA.metrics
         .filter(metric => metric === "rho-perfect" ||
@@ -791,7 +816,9 @@ PAGE_TEMPLATE = r'''<!doctype html>
         .sort((left, right) => {
           const leftValue = byMetric.get(left)[sortSeries.key] ?? -Infinity;
           const rightValue = byMetric.get(right)[sortSeries.key] ?? -Infinity;
-          return leftValue - rightValue || left.localeCompare(right);
+          // rho-perfect (Pearson only) stays at the right end as the upper bound.
+          return (left === "rho-perfect") - (right === "rho-perfect") ||
+            leftValue - rightValue || left.localeCompare(right);
         });
       // "Top 10": the ten best metrics in the sorted series; rho-perfect stays as the upper bound.
       const top = new Set(rankedMetrics.filter(metric => metric !== "rho-perfect").slice(-10));
@@ -1268,6 +1295,10 @@ PAGE_TEMPLATE = r'''<!doctype html>
           group.querySelectorAll("button").forEach(option =>
             option.setAttribute("aria-pressed", String(option === button)));
         } else {
+          // The sort button cycles through the shown correlations; from Locked, a first click only unlocks.
+          if (button.dataset.value === "sort" && state.metricOrder === "sort") {
+            state.sortKey = shownSortKey(state.sortKey, 1);
+          }
           state[group.dataset.control] = button.dataset.value;
           group.querySelectorAll("button").forEach(option =>
             option.setAttribute("aria-pressed", String(option === button)));
