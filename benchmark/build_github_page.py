@@ -463,7 +463,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
           <div class="control">
             <span class="control-label">Sort by</span>
             <div class="segments compact" data-control="metricOrder" role="group" aria-label="Metric order">
-              <button type="button" data-value="sort" aria-describedby="order-sort-tooltip" aria-pressed="true"><span id="sort-name">Pearson</span> <span aria-hidden="true">↻</span><span class="option-tooltip" id="order-sort-tooltip" role="tooltip">Sort by this correlation; click again to switch to the next one shown in the legend (Pearson, Spearman, Kendall sin(πτ/2)).</span></button>
+              <button type="button" data-value="sort" aria-describedby="order-sort-tooltip" aria-pressed="true"><span id="sort-name">Pearson</span> <span aria-hidden="true">↻</span><span class="option-tooltip" id="order-sort-tooltip" role="tooltip">Sort by this correlation; click again to switch to the next one (Pearson, Spearman, Kendall).</span></button>
               <button type="button" data-value="locked" aria-describedby="order-locked-tooltip" aria-pressed="false">Locked<span class="option-tooltip" id="order-locked-tooltip" role="tooltip">Keep the current order when filters change.</span></button>
             </div>
           </div>
@@ -570,6 +570,9 @@ PAGE_TEMPLATE = r'''<!doctype html>
     if (window.matchMedia("(max-width: 700px)").matches) {
       state.hiddenSeries.add(correlationNames.spearman).add(correlationNames.kendall);
     }
+    // On touch screens a finger drag on a chart scrolls the page instead of zooming;
+    // the zoom buttons in the chart toolbar still work.
+    const dragmode = window.matchMedia("(pointer: coarse)").matches ? false : "zoom";
 
     let activeTooltip = null;
 
@@ -722,7 +725,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
         hovertemplate: "<b>%{fullData.name}</b><br>Mean score bin: %{x}<br>Count: %{y}<extra></extra>"
       }));
       Plotly.react(meanScoreHistogram, traces, {
-        autosize: true,
+        autosize: true, dragmode,
         barmode: "stack",
         bargap: 0.04,
         margin: { l: 62, r: 24, t: 48, b: 55 },
@@ -884,7 +887,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
         };
       }
       const layout = {
-        autosize: true,
+        autosize: true, dragmode,
         // Small right margin: xaxis.automargin widens it only as far as the last slanted label needs.
         margin: { l: 62, r: 24, t: 58, b: 55 },
         paper_bgcolor: "#fff",
@@ -1114,7 +1117,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
         };
       }).filter(trace => trace.y.length > 0);
       Plotly.react(methodChart, traces, {
-        autosize: true,
+        autosize: true, dragmode,
         margin: { l: 62, r: 20, t: 95, b: 130 },
         shapes, annotations,
         paper_bgcolor: "#fff", plot_bgcolor: "#fff",
@@ -1220,7 +1223,7 @@ PAGE_TEMPLATE = r'''<!doctype html>
       const legendHeight = traces.length * 22 + 12;
       pairChart.style.height = `${narrow ? 360 + legendHeight : Math.max(430, legendHeight + 70)}px`;
       Plotly.react(pairChart, traces, {
-        autosize: true,
+        autosize: true, dragmode,
         margin: { l: 64, r: narrow ? 20 : 330, t: 12, b: narrow ? legendHeight + 85 : 54, autoexpand: false },
         paper_bgcolor: "#fff",
         plot_bgcolor: "#fff",
@@ -1296,8 +1299,16 @@ PAGE_TEMPLATE = r'''<!doctype html>
             option.setAttribute("aria-pressed", String(option === button)));
         } else {
           // The sort button cycles through the shown correlations; from Locked, a first click only unlocks.
+          // If only one correlation is shown (default on phones), the legend switches to the next one.
           if (button.dataset.value === "sort" && state.metricOrder === "sort") {
-            state.sortKey = shownSortKey(state.sortKey, 1);
+            const names = Object.values(correlationNames);
+            if (names.filter(name => !state.hiddenSeries.has(name)).length === 1) {
+              const keys = Object.keys(correlationNames);
+              state.sortKey = keys[(keys.indexOf(state.sortKey) + 1) % keys.length];
+              state.hiddenSeries = new Set(names.filter(name => name !== correlationNames[state.sortKey]));
+            } else {
+              state.sortKey = shownSortKey(state.sortKey, 1);
+            }
           }
           state[group.dataset.control] = button.dataset.value;
           group.querySelectorAll("button").forEach(option =>
